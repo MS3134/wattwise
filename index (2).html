@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WattWise — Smart Home Energy Auditor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<style>
+  /* ===== CSS VARIABLES & RESET ===== */
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #0f1525;
+    --bg3: #161d31;
+    --card: #111827;
+    --card2: #1a2235;
+    --border: #1f2d45;
+    --border2: #253350;
+    --accent: #22d3ee;
+    --accent2: #0ea5e9;
+    --accent3: #818cf8;
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --orange: #fb923c;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --glow: 0 0 30px rgba(34,211,238,0.15);
+    --glow2: 0 0 60px rgba(34,211,238,0.08);
+    --radius: 16px;
+    --radius2: 12px;
+    --radius3: 8px;
+    --font-head: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ===== BACKGROUND MESH ===== */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 10% 10%, rgba(34,211,238,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 80%, rgba(129,140,248,0.07) 0%, transparent 55%),
+      radial-gradient(ellipse 40% 30% at 50% 50%, rgba(14,165,233,0.04) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* ===== LAYOUT ===== */
+  .wrapper { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 0 20px; }
+
+  /* ===== HEADER ===== */
+  header {
+    padding: 28px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+    animation: fadeDown 0.6s ease both;
+  }
+  .header-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+  .logo-icon {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 12px;
+    display: grid; place-items: center;
+    font-size: 20px; color: #0a0e1a;
+    box-shadow: 0 0 20px rgba(34,211,238,0.35);
+  }
+  .logo-text { font-family: var(--font-head); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-text span { color: var(--accent); }
+  .header-badge {
+    font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--text3); border: 1px solid var(--border2); border-radius: 20px; padding: 5px 14px;
+  }
+
+  /* ===== HERO STRIP ===== */
+  .hero {
+    text-align: center; margin-bottom: 48px;
+    animation: fadeUp 0.7s 0.1s ease both;
+  }
+  .hero h1 {
+    font-family: var(--font-head); font-size: clamp(26px, 5vw, 48px);
+    font-weight: 800; line-height: 1.15; letter-spacing: -1px;
+    margin-bottom: 12px;
+  }
+  .hero h1 .hl {
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .hero p { color: var(--text2); font-size: 16px; max-width: 520px; margin: 0 auto; }
+
+  /* ===== GRID LAYOUT ===== */
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
+  @media(max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+  .full-row { grid-column: 1 / -1; }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    transition: var(--transition);
+    animation: fadeUp 0.6s ease both;
+  }
+  .card:hover { border-color: var(--border2); box-shadow: var(--glow); }
+  .card-title {
+    font-family: var(--font-head); font-size: 13px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--text3);
+    margin-bottom: 24px; display: flex; align-items: center; gap: 8px;
+  }
+  .card-title i { color: var(--accent); font-size: 12px; }
+
+  /* ===== FORM CONTROLS ===== */
+  .form-group { margin-bottom: 20px; }
+  label { display: block; font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 8px; }
+  input[type="number"], input[type="text"], select {
+    width: 100%; padding: 12px 16px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius3); color: var(--text);
+    font-family: var(--font-body); font-size: 14px;
+    transition: var(--transition); outline: none;
+  }
+  input[type="number"]:focus, input[type="text"]:focus, select:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px rgba(34,211,238,0.1);
+  }
+  select option { background: var(--card); }
+  input[type="range"] {
+    width: 100%; accent-color: var(--accent); cursor: pointer;
+    height: 6px; background: var(--bg2); border-radius: 3px;
+  }
+  .range-display {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; color: var(--text3); margin-top: 4px;
+  }
+  .range-val { font-size: 14px; font-weight: 600; color: var(--accent); }
+
+  /* ===== CURRENCY / RATE INPUT ===== */
+  .input-with-icon { position: relative; }
+  .input-with-icon span {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    font-size: 13px; font-weight: 700; color: var(--accent);
+  }
+  .input-with-icon input { padding-left: 54px; }
+
+  /* ===== APPLIANCE TABLE ===== */
+  .appliance-header {
+    display: grid;
+    grid-template-columns: 2fr 120px 70px 1fr 44px;
+    gap: 10px; align-items: center;
+    font-size: 11px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--text3);
+    padding: 0 0 12px; border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  @media(max-width:700px) {
+    .appliance-header { grid-template-columns: 1fr; display: none; }
+  }
+  .appliance-row {
+    display: grid;
+    grid-template-columns: 2fr 120px 70px 1fr 44px;
+    gap: 10px; align-items: center;
+    padding: 12px; margin-bottom: 10px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius2);
+    transition: var(--transition); animation: fadeUp 0.35s ease both;
+  }
+  .appliance-row:hover { border-color: var(--border2); }
+  @media(max-width:700px) {
+    .appliance-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .appliance-row select, .appliance-row input { font-size: 13px; }
+  }
+  .appliance-row input, .appliance-row select {
+    background: var(--card); border-color: var(--border);
+    padding: 9px 12px; font-size: 13px;
+  }
+  .appliance-row .hours-wrapper { display: flex; flex-direction: column; gap: 4px; }
+  .appliance-row .hours-wrapper input[type="range"] { margin-top: 2px; }
+  .btn-remove {
+    width: 36px; height: 36px; border-radius: 8px; border: 1px solid rgba(248,113,113,0.25);
+    background: rgba(248,113,113,0.08); color: var(--red);
+    cursor: pointer; display: grid; place-items: center; font-size: 13px;
+    transition: var(--transition);
+  }
+  .btn-remove:hover { background: rgba(248,113,113,0.2); border-color: var(--red); }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 22px; border-radius: var(--radius3);
+    font-family: var(--font-body); font-size: 14px; font-weight: 600;
+    cursor: pointer; border: none; transition: var(--transition); text-decoration: none;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #0a0e1a;
+    box-shadow: 0 4px 20px rgba(34,211,238,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(34,211,238,0.4); }
+  .btn-outline {
+    background: transparent; color: var(--text2);
+    border: 1px solid var(--border2);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: rgba(34,211,238,0.05); }
+  .btn-green { background: linear-gradient(135deg, var(--green), #059669); color: #022c22; box-shadow: 0 4px 20px rgba(52,211,153,0.3); }
+  .btn-green:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(52,211,153,0.4); }
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+
+  /* ===== KPI CARDS ===== */
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+  @media(max-width:700px) { .kpi-grid { grid-template-columns: 1fr; } }
+  .kpi-card {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius2);
+    padding: 22px;
+    text-align: center;
+    animation: fadeUp 0.6s ease both;
+    transition: var(--transition);
+  }
+  .kpi-card:hover { border-color: var(--border2); transform: translateY(-3px); box-shadow: var(--glow); }
+  .kpi-label { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+  .kpi-val { font-family: var(--font-head); font-size: 28px; font-weight: 800; line-height: 1; }
+  .kpi-sub { font-size: 12px; color: var(--text3); margin-top: 6px; }
+  .kpi-val.accent { color: var(--accent); }
+  .kpi-val.green { color: var(--green); }
+  .kpi-val.yellow { color: var(--yellow); }
+  .kpi-val.orange { color: var(--orange); }
+  .kpi-icon { font-size: 22px; margin-bottom: 10px; opacity: 0.7; }
+
+  /* ===== RESULTS TABS ===== */
+  .result-section { animation: fadeUp 0.7s 0.15s ease both; }
+  .period-tabs { display: flex; gap: 8px; margin-bottom: 24px; background: var(--bg2); padding: 6px; border-radius: 12px; border: 1px solid var(--border); }
+  .tab-btn {
+    flex: 1; padding: 9px; border-radius: 8px; border: none; cursor: pointer;
+    font-family: var(--font-body); font-size: 13px; font-weight: 600;
+    background: transparent; color: var(--text3); transition: var(--transition);
+  }
+  .tab-btn.active { background: var(--card2); color: var(--accent); box-shadow: 0 2px 10px rgba(0,0,0,0.3); border: 1px solid var(--border2); }
+
+  /* ===== CHART ===== */
+  .chart-wrap { position: relative; height: 260px; }
+
+  /* ===== RECOMMENDATIONS ===== */
+  .rec-list { display: flex; flex-direction: column; gap: 12px; }
+  .rec-item {
+    display: flex; gap: 14px; align-items: flex-start;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius2); padding: 16px;
+    transition: var(--transition); animation: fadeUp 0.4s ease both;
+  }
+  .rec-item:hover { border-color: var(--border2); background: var(--card2); }
+  .rec-icon {
+    width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+  .rec-icon.red { background: rgba(248,113,113,0.15); color: var(--red); }
+  .rec-icon.yellow { background: rgba(251,191,36,0.12); color: var(--yellow); }
+  .rec-icon.green { background: rgba(52,211,153,0.12); color: var(--green); }
+  .rec-icon.blue { background: rgba(34,211,238,0.12); color: var(--accent); }
+  .rec-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .rec-desc { font-size: 13px; color: var(--text2); line-height: 1.5; }
+  .rec-saving { font-size: 12px; font-weight: 700; color: var(--green); margin-top: 6px; display: flex; align-items: center; gap: 4px; }
+
+  /* ===== TOP CONSUMERS TABLE ===== */
+  .top-table { width: 100%; border-collapse: collapse; }
+  .top-table th {
+    text-align: left; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--text3); font-weight: 600; padding: 0 12px 14px; border-bottom: 1px solid var(--border);
+  }
+  .top-table td { padding: 14px 12px; font-size: 14px; border-bottom: 1px solid rgba(31,45,69,0.5); }
+  .top-table tr:last-child td { border-bottom: none; }
+  .top-table tr:hover td { background: var(--bg2); }
+  .rank-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 6px; font-size: 12px; font-weight: 700;
+  }
+  .rank-1 { background: rgba(251,191,36,0.15); color: var(--yellow); }
+  .rank-2 { background: rgba(148,163,184,0.12); color: #94a3b8; }
+  .rank-3 { background: rgba(251,146,60,0.12); color: var(--orange); }
+  .rank-other { background: rgba(100,116,139,0.1); color: var(--text3); }
+  .bar-wrap { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent3)); transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+
+  /* ===== EMPTY STATE ===== */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
+  .empty-state i { font-size: 48px; margin-bottom: 16px; opacity: 0.3; display: block; }
+  .empty-state p { font-size: 15px; }
+
+  /* ===== PRINT / REPORT ===== */
+  .report-header { display: none; }
+  @media print {
+    body { background: #fff !important; color: #111 !important; }
+    body::before { display: none; }
+    .no-print { display: none !important; }
+    .report-header { display: block; text-align: center; margin-bottom: 30px; padding: 20px; border-bottom: 2px solid #0ea5e9; }
+    .report-header h2 { font-size: 24px; font-weight: 800; }
+    .report-header p { color: #555; margin-top: 4px; }
+    .card, .kpi-card, .rec-item, .appliance-row { background: #f8fafc !important; border: 1px solid #e2e8f0 !important; color: #111 !important; box-shadow: none !important; }
+    .kpi-val { color: #0ea5e9 !important; }
+    .kpi-val.green { color: #059669 !important; }
+    .kpi-val.orange { color: #ea580c !important; }
+    .text2, .kpi-label, .kpi-sub, label { color: #555 !important; }
+    .card-title { color: #888 !important; }
+    header { display: none; }
+    .period-tabs { display: none; }
+    .btn-row { display: none !important; }
+    .chart-wrap { page-break-inside: avoid; }
+  }
+
+  /* ===== TOAST ===== */
+  .toast-container { position: fixed; top: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+  .toast {
+    background: var(--card2); border: 1px solid var(--border2); border-radius: 12px;
+    padding: 14px 20px; display: flex; align-items: center; gap: 10px;
+    font-size: 14px; font-weight: 500; box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    animation: slideIn 0.3s ease, fadeOut 0.3s 2.5s ease forwards;
+    max-width: 320px;
+  }
+  .toast.success i { color: var(--green); }
+  .toast.info i { color: var(--accent); }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; pointer-events: none; } }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg2); } ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  /* ===== FOOTER ===== */
+  footer { border-top: 1px solid var(--border); padding: 28px 0; margin-top: 60px; text-align: center; color: var(--text3); font-size: 13px; }
+  footer a { color: var(--accent); text-decoration: none; } footer a:hover { text-decoration: underline; }
+
+  /* ===== STAGGER DELAYS ===== */
+  .kpi-card:nth-child(1) { animation-delay: 0.0s; }
+  .kpi-card:nth-child(2) { animation-delay: 0.07s; }
+  .kpi-card:nth-child(3) { animation-delay: 0.14s; }
+  .kpi-card:nth-child(4) { animation-delay: 0.21s; }
+  .kpi-card:nth-child(5) { animation-delay: 0.28s; }
+  .kpi-card:nth-child(6) { animation-delay: 0.35s; }
+
+  /* ===== SAVINGS HIGHLIGHT ===== */
+  .savings-box {
+    background: linear-gradient(135deg, rgba(52,211,153,0.1), rgba(34,211,238,0.07));
+    border: 1px solid rgba(52,211,153,0.25);
+    border-radius: var(--radius2); padding: 18px 22px;
+    display: flex; align-items: center; gap: 14px; margin-top: 20px;
+  }
+  .savings-box i { font-size: 24px; color: var(--green); }
+  .savings-box .s-label { font-size: 12px; color: var(--text2); }
+  .savings-box .s-val { font-family: var(--font-head); font-size: 22px; font-weight: 800; color: var(--green); }
+</style>
+</head>
+<body>
+
+<!-- PRINT HEADER (hidden on screen) -->
+<div class="report-header">
+  <h2>⚡ WattWise — Home Energy Audit Report</h2>
+  <p id="report-date"></p>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="wrapper">
+  <!-- ===== HEADER ===== -->
+  <header class="no-print">
+    <div class="header-inner">
+      <a class="logo" href="#">
+        <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
+        <div class="logo-text">Watt<span>Wise</span></div>
+      </a>
+      <div class="header-badge">Energy Auditor v1.0</div>
+    </div>
+  </header>
+
+  <!-- ===== HERO ===== -->
+  <div class="hero no-print">
+    <h1>Audit Your Home's <span class="hl">Energy Footprint</span></h1>
+    <p>Add your appliances, set usage hours, and instantly discover where your electricity bill is going — and how to cut it.</p>
+  </div>
+
+  <!-- ===== MAIN GRID ===== -->
+  <div class="main-grid">
+
+    <!-- LEFT: Settings & Rate -->
+    <div class="card" style="animation-delay:0.05s">
+      <div class="card-title"><i class="fa-solid fa-sliders"></i> Audit Settings</div>
+
+      <div class="form-group">
+        <label>Your Name (for Report)</label>
+        <input type="text" id="userName" placeholder="e.g. Muhammad Sa'ad" value=""/>
+      </div>
+
+      <div class="form-group">
+        <label>Electricity Unit Rate (PKR per kWh)</label>
+        <div class="input-with-icon">
+          <span>₨</span>
+          <input type="number" id="unitRate" value="50" min="1" step="0.5"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Currency Label</label>
+        <select id="currencyLabel">
+          <option value="PKR">PKR (Pakistani Rupee)</option>
+          <option value="USD">USD (US Dollar)</option>
+          <option value="INR">INR (Indian Rupee)</option>
+          <option value="SAR">SAR (Saudi Riyal)</option>
+          <option value="AED">AED (UAE Dirham)</option>
+          <option value="GBP">GBP (British Pound)</option>
+          <option value="EUR">EUR (Euro)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Fuel Adjustment / Tax Surcharge (%)</label>
+        <div class="input-with-icon">
+          <span>%</span>
+          <input type="number" id="taxRate" value="0" min="0" max="100" step="0.5" style="padding-left:38px"/>
+        </div>
+      </div>
+
+      <div class="savings-box">
+        <i class="fa-solid fa-piggy-bank"></i>
+        <div>
+          <div class="s-label">Potential Monthly Savings</div>
+          <div class="s-val" id="potentialSavings">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Quick Stats -->
+    <div class="card" style="animation-delay:0.1s">
+      <div class="card-title"><i class="fa-solid fa-chart-simple"></i> Consumption Summary</div>
+      <div class="kpi-grid" style="grid-template-columns:1fr 1fr; margin-bottom:0">
+        <div class="kpi-card">
+          <div class="kpi-icon">⚡</div>
+          <div class="kpi-label">Daily kWh</div>
+          <div class="kpi-val accent" id="daily-kwh">0.00</div>
+          <div class="kpi-sub">Units/day</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">📅</div>
+          <div class="kpi-label">Monthly kWh</div>
+          <div class="kpi-val yellow" id="monthly-kwh">0.00</div>
+          <div class="kpi-sub">Units/month</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">💸</div>
+          <div class="kpi-label">Daily Cost</div>
+          <div class="kpi-val green" id="daily-cost">0</div>
+          <div class="kpi-sub" id="daily-cost-cur">PKR/day</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">🏠</div>
+          <div class="kpi-label">Monthly Bill</div>
+          <div class="kpi-val orange" id="monthly-cost">0</div>
+          <div class="kpi-sub" id="monthly-cost-cur">PKR/month</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== APPLIANCE SECTION ===== -->
+  <div class="card full-row" style="margin-bottom:24px; animation-delay:0.15s">
+    <div class="card-title"><i class="fa-solid fa-plug-circle-plus"></i> Appliance List</div>
+
+    <div class="appliance-header">
+      <span>Appliance</span><span>Watts</span><span>Qty</span><span>Hours/Day</span><span></span>
+    </div>
+    <div id="applianceList"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-outline no-print" onclick="addAppliance()"><i class="fa-solid fa-plus"></i> Add Appliance</button>
+      <button class="btn btn-primary no-print" onclick="calculate()"><i class="fa-solid fa-calculator"></i> Calculate</button>
+      <button class="btn btn-green no-print" onclick="saveData()"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+      <button class="btn btn-outline no-print" onclick="printReport()"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+      <button class="btn btn-outline no-print" onclick="clearAll()" style="margin-left:auto; border-color:rgba(248,113,113,0.3); color:var(--red)"><i class="fa-solid fa-trash"></i> Clear</button>
+    </div>
+  </div>
+
+  <!-- ===== RESULTS SECTION ===== -->
+  <div class="result-section" id="resultsSection">
+    <div class="main-grid" style="margin-bottom:24px">
+
+      <!-- CHART CARD -->
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-chart-pie"></i> Consumption Breakdown</div>
+        <div class="period-tabs no-print">
+          <button class="tab-btn active" onclick="switchTab('monthly', this)">Monthly</button>
+          <button class="tab-btn" onclick="switchTab('daily', this)">Daily</button>
+          <button class="tab-btn" onclick="switchTab('yearly', this)">Yearly</button>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="pieChart"></canvas>
+        </div>
+        <div style="margin-top:16px">
+          <div class="kpi-label" style="margin-bottom:8px">Yearly Estimate</div>
+          <div style="display:flex; gap:20px">
+            <div>
+              <div style="font-size:12px; color:var(--text3)">kWh</div>
+              <div style="font-family:var(--font-head); font-size:20px; color:var(--accent)" id="yearly-kwh">0</div>
+            </div>
+            <div>
+              <div style="font-size:12px; color:var(--text3)">Cost</div>
+              <div style="font-family:var(--font-head); font-size:20px; color:var(--yellow)" id="yearly-cost">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP CONSUMERS -->
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-fire-flame-curved"></i> Top Consumers</div>
+        <div id="topConsumers">
+          <div class="empty-state">
+            <i class="fa-solid fa-bolt-lightning"></i>
+            <p>Add appliances and calculate to see your top energy consumers.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECOMMENDATIONS -->
+    <div class="card full-row" style="margin-bottom:24px; animation-delay:0.2s">
+      <div class="card-title"><i class="fa-solid fa-lightbulb"></i> AI-Inspired Smart Recommendations</div>
+      <div class="rec-list" id="recList">
+        <div class="empty-state">
+          <i class="fa-solid fa-lightbulb"></i>
+          <p>Recommendations appear after you calculate your energy audit.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="no-print">
+    <p>WattWise — Smart Home Energy Auditor &nbsp;|&nbsp; Built for Pakistani households &nbsp;|&nbsp; Data stored locally in your browser &nbsp;&nbsp;⚡</p>
+  </footer>
+</div>
+
+<script>
+/* ====================================================
+   WATTWISE — SMART HOME ENERGY AUDITOR
+   Complete JavaScript Logic — No Placeholders
+   ==================================================== */
+
+// ===== APPLIANCE PRESETS =====
+const APPLIANCE_PRESETS = {
+  'AC (Non-Inverter 1.5T)': 1500,
+  'AC (Inverter 1.5T)': 900,
+  'AC (Non-Inverter 1T)': 1100,
+  'AC (Inverter 1T)': 650,
+  'Refrigerator (Large)': 200,
+  'Refrigerator (Small)': 120,
+  'Washing Machine': 500,
+  'Dryer': 2000,
+  'Water Heater/Geyser': 2000,
+  'Electric Kettle': 1500,
+  'Microwave Oven': 1000,
+  'Electric Iron': 1100,
+  'Electric Stove': 2000,
+  'Television (LED 32")': 50,
+  'Television (LED 55")': 120,
+  'Ceiling Fan': 75,
+  'Pedestal Fan': 55,
+  'Exhaust Fan': 35,
+  'LED Bulb (9W)': 9,
+  'LED Bulb (12W)': 12,
+  'Energy Saver (CFL)': 23,
+  'Tube Light (T8)': 40,
+  'WiFi Router': 10,
+  'Desktop Computer': 200,
+  'Laptop': 65,
+  'Printer': 150,
+  'CCTV System (4 cam)': 25,
+  'Water Pump (0.5HP)': 370,
+  'Water Pump (1HP)': 745,
+  'UPS/Inverter': 80,
+  'Custom': 100,
+};
+
+// ===== CHART INSTANCE =====
+let pieChartInstance = null;
+let currentTab = 'monthly';
+let applianceIdCounter = 0;
+let lastCalcData = null; // store last calculation result
+
+// ===== DOM READY =====
+document.addEventListener('DOMContentLoaded', () => {
+  loadData();
+  if (document.getElementById('applianceList').children.length === 0) {
+    addAppliance('AC (Non-Inverter 1.5T)', 1500, 1, 8);
+    addAppliance('Refrigerator (Large)', 200, 1, 24);
+    addAppliance('Ceiling Fan', 75, 3, 12);
+    addAppliance('LED Bulb (9W)', 9, 8, 7);
+  }
+  calculate();
+  document.getElementById('report-date').textContent = 'Generated on: ' + new Date().toLocaleDateString('en-PK', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  document.getElementById('unitRate').addEventListener('input', calculate);
+  document.getElementById('taxRate').addEventListener('input', calculate);
+  document.getElementById('currencyLabel').addEventListener('change', updateCurrencyLabels);
+});
+
+// ===== ADD APPLIANCE ROW =====
+function addAppliance(name = 'Custom', watts = 100, qty = 1, hours = 4) {
+  const id = ++applianceIdCounter;
+  const list = document.getElementById('applianceList');
+  const div = document.createElement('div');
+  div.className = 'appliance-row';
+  div.id = 'row-' + id;
+  div.style.animationDelay = '0s';
+
+  const options = Object.keys(APPLIANCE_PRESETS).map(key =>
+    `<option value="${key}" ${key === name ? 'selected' : ''}>${key}</option>`
+  ).join('');
+
+  div.innerHTML = `
+    <select onchange="presetChanged(${id}, this)">
+      ${options}
+    </select>
+    <input type="number" class="watts" value="${watts}" min="1" max="100000" placeholder="Watts" oninput="calculate()"/>
+    <input type="number" class="qty" value="${qty}" min="1" max="100" placeholder="Qty" oninput="calculate()"/>
+    <div class="hours-wrapper">
+      <input type="range" class="hours" value="${hours}" min="0.5" max="24" step="0.5" oninput="updateHoursDisplay(${id}, this); calculate()"/>
+      <div class="range-display"><span>0.5h</span><span class="range-val" id="hd-${id}">${hours}h/day</span><span>24h</span></div>
+    </div>
+    <button class="btn-remove" onclick="removeAppliance(${id})" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+  `;
+  list.appendChild(div);
+  calculate();
+}
+
+// ===== PRESET CHANGED =====
+function presetChanged(id, sel) {
+  const row = document.getElementById('row-' + id);
+  const watts = APPLIANCE_PRESETS[sel.value] || 100;
+  row.querySelector('.watts').value = watts;
+  calculate();
+}
+
+// ===== HOURS DISPLAY =====
+function updateHoursDisplay(id, input) {
+  const el = document.getElementById('hd-' + id);
+  if (el) el.textContent = input.value + 'h/day';
+}
+
+// ===== REMOVE APPLIANCE =====
+function removeAppliance(id) {
+  const row = document.getElementById('row-' + id);
+  if (row) {
+    row.style.opacity = '0';
+    row.style.transform = 'translateX(20px)';
+    row.style.transition = 'all 0.25s ease';
+    setTimeout(() => { row.remove(); calculate(); }, 250);
+  }
+}
+
+// ===== MAIN CALCULATION ENGINE =====
+function calculate() {
+  const rate = parseFloat(document.getElementById('unitRate').value) || 50;
+  const taxPct = parseFloat(document.getElementById('taxRate').value) || 0;
+  const taxMult = 1 + (taxPct / 100);
+  const currency = document.getElementById('currencyLabel').value || 'PKR';
+
+  const rows = document.querySelectorAll('.appliance-row');
+  const applianceData = [];
+
+  rows.forEach(row => {
+    const sel = row.querySelector('select');
+    const name = sel ? sel.value : 'Appliance';
+    const watts = parseFloat(row.querySelector('.watts').value) || 0;
+    const qty = parseInt(row.querySelector('.qty').value) || 1;
+    const hours = parseFloat(row.querySelector('.hours').value) || 0;
+    const dailyKwh = (watts * qty * hours) / 1000;
+    applianceData.push({ name, watts, qty, hours, dailyKwh });
+  });
+
+  const totalDailyKwh = applianceData.reduce((s, a) => s + a.dailyKwh, 0);
+  const totalMonthlyKwh = totalDailyKwh * 30;
+  const totalYearlyKwh = totalDailyKwh * 365;
+
+  const dailyCost = totalDailyKwh * rate * taxMult;
+  const monthlyCost = totalMonthlyKwh * rate * taxMult;
+  const yearlyCost = totalYearlyKwh * rate * taxMult;
+
+  // Update KPIs
+  document.getElementById('daily-kwh').textContent = totalDailyKwh.toFixed(2);
+  document.getElementById('monthly-kwh').textContent = totalMonthlyKwh.toFixed(1);
+  document.getElementById('daily-cost').textContent = fmt(dailyCost);
+  document.getElementById('monthly-cost').textContent = fmt(monthlyCost);
+  document.getElementById('yearly-kwh').textContent = totalYearlyKwh.toFixed(0);
+  document.getElementById('yearly-cost').textContent = currency + ' ' + fmt(yearlyCost);
+  document.getElementById('daily-cost-cur').textContent = currency + '/day';
+  document.getElementById('monthly-cost-cur').textContent = currency + '/month';
+
+  // Store for switching tabs
+  lastCalcData = { applianceData, totalDailyKwh, totalMonthlyKwh, totalYearlyKwh, dailyCost, monthlyCost, yearlyCost, rate, currency, taxMult };
+
+  // Update chart
+  updateChart(applianceData, currentTab, totalDailyKwh);
+
+  // Top consumers
+  updateTopConsumers(applianceData, totalDailyKwh, rate, currency, taxMult);
+
+  // Recommendations
+  generateRecommendations(applianceData, totalDailyKwh, monthlyCost, rate, currency, taxMult);
+
+  // Potential savings
+  updatePotentialSavings(applianceData, rate, currency, taxMult);
+}
+
+// ===== SWITCH TAB =====
+function switchTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (lastCalcData) {
+    updateChart(lastCalcData.applianceData, tab, lastCalcData.totalDailyKwh);
+  }
+}
+
+// ===== FORMAT NUMBER =====
+function fmt(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(2) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(2) + 'K';
+  return n.toFixed(0);
+}
+
+// ===== UPDATE CHART =====
+function updateChart(applianceData, period, totalDailyKwh) {
+  if (!applianceData.length || totalDailyKwh === 0) {
+    if (pieChartInstance) { pieChartInstance.destroy(); pieChartInstance = null; }
+    return;
+  }
+
+  const multiplier = period === 'daily' ? 1 : period === 'monthly' ? 30 : 365;
+  const labels = [];
+  const values = [];
+  const colors = [
+    '#22d3ee','#818cf8','#34d399','#fbbf24','#fb923c','#f87171',
+    '#a78bfa','#2dd4bf','#f472b6','#60a5fa','#84cc16','#e879f9'
+  ];
+
+  // Group small contributors
+  const grouped = applianceData
+    .map(a => ({ name: a.name, val: a.dailyKwh * multiplier }))
+    .sort((x, y) => y.val - x.val);
+
+  let otherVal = 0;
+  grouped.forEach((item, i) => {
+    if (i < 10) {
+      labels.push(item.name.length > 20 ? item.name.slice(0, 20) + '…' : item.name);
+      values.push(parseFloat(item.val.toFixed(3)));
+    } else {
+      otherVal += item.val;
+    }
+  });
+  if (otherVal > 0) { labels.push('Others'); values.push(parseFloat(otherVal.toFixed(3))); }
+
+  const ctx = document.getElementById('pieChart').getContext('2d');
+  if (pieChartInstance) pieChartInstance.destroy();
+
+  pieChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors.slice(0, labels.length),
+        borderColor: '#0a0e1a',
+        borderWidth: 3,
+        hoverOffset: 10,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: '#94a3b8', font: { family: 'DM Sans', size: 11 },
+            padding: 12, boxWidth: 12, boxHeight: 12,
+          }
+        },
+        tooltip: {
+          backgroundColor: '#1a2235',
+          borderColor: '#1f2d45', borderWidth: 1,
+          titleColor: '#e2e8f0', bodyColor: '#94a3b8',
+          padding: 12,
+          callbacks: {
+            label: ctx => {
+              const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const pct = ((ctx.parsed / total) * 100).toFixed(1);
+              return ` ${ctx.parsed.toFixed(2)} kWh (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ===== TOP CONSUMERS =====
+function updateTopConsumers(applianceData, totalDailyKwh, rate, currency, taxMult) {
+  const container = document.getElementById('topConsumers');
+  if (!applianceData.length || totalDailyKwh === 0) {
+    container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-bolt-lightning"></i><p>Add appliances and calculate.</p></div>`;
+    return;
+  }
+
+  const sorted = [...applianceData].sort((a, b) => b.dailyKwh - a.dailyKwh).slice(0, 6);
+  const maxKwh = sorted[0].dailyKwh;
+
+  const rows = sorted.map((a, i) => {
+    const pct = totalDailyKwh > 0 ? ((a.dailyKwh / totalDailyKwh) * 100).toFixed(1) : 0;
+    const barWidth = maxKwh > 0 ? ((a.dailyKwh / maxKwh) * 100).toFixed(1) : 0;
+    const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
+    const monthlyCost = (a.dailyKwh * 30 * rate * taxMult).toFixed(0);
+    return `
+      <tr>
+        <td><span class="rank-badge ${rankClass}">${i + 1}</span></td>
+        <td><div style="font-size:13px;font-weight:500">${a.name}</div><div class="bar-wrap" style="margin-top:6px"><div class="bar-fill" style="width:${barWidth}%"></div></div></td>
+        <td style="text-align:right;font-weight:700;color:var(--accent)">${pct}%</td>
+        <td style="text-align:right;color:var(--yellow);font-size:13px">${currency} ${monthlyCost}</td>
+      </tr>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <table class="top-table">
+      <thead><tr><th>#</th><th>Appliance</th><th style="text-align:right">Share</th><th style="text-align:right">Monthly Cost</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+// ===== SMART RECOMMENDATIONS =====
+function generateRecommendations(applianceData, totalDailyKwh, monthlyCost, rate, currency, taxMult) {
+  const container = document.getElementById('recList');
+  const recs = [];
+
+  if (!applianceData.length || totalDailyKwh === 0) {
+    container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-lightbulb"></i><p>Recommendations appear after calculation.</p></div>`;
+    return;
+  }
+
+  // Analyse each appliance type
+  applianceData.forEach(a => {
+    const monthlyKwh = a.dailyKwh * 30;
+    const monthlyCostItem = monthlyKwh * rate * taxMult;
+    const pct = totalDailyKwh > 0 ? ((a.dailyKwh / totalDailyKwh) * 100).toFixed(0) : 0;
+
+    // Non-Inverter AC → Inverter AC
+    if (a.name.includes('Non-Inverter') && a.name.includes('AC')) {
+      const saving = monthlyCostItem * 0.40;
+      recs.push({
+        icon: 'fa-snowflake', type: 'red',
+        title: `${a.name} is your biggest energy drain (${pct}%)`,
+        desc: `This AC consumes ~${monthlyKwh.toFixed(0)} kWh/month. Switching to an Inverter AC model can reduce consumption by up to 40%.`,
+        saving: `Potential saving: ${currency} ${saving.toFixed(0)}/month`
+      });
+    }
+
+    // High-wattage lighting
+    if ((a.name.includes('Tube Light') || a.name.includes('Energy Saver')) && a.qty >= 4) {
+      const ledWatts = 9;
+      const ledDailyKwh = (ledWatts * a.qty * a.hours) / 1000;
+      const ledSave = (a.dailyKwh - ledDailyKwh) * 30 * rate * taxMult;
+      if (ledSave > 0) {
+        recs.push({
+          icon: 'fa-lightbulb', type: 'yellow',
+          title: `Lighting load optimization opportunity`,
+          desc: `You have ${a.qty} ${a.name}(s). Replacing them with 9W LED bulbs can significantly reduce your lighting bill.`,
+          saving: `Potential saving: ${currency} ${ledSave.toFixed(0)}/month`
+        });
+      }
+    }
+
+    // Geyser/Water heater running too long
+    if (a.name.includes('Geyser') || a.name.includes('Water Heater')) {
+      if (a.hours > 3) {
+        const optimizedHours = 2;
+        const savedKwh = (a.watts * a.qty * (a.hours - optimizedHours)) / 1000 * 30;
+        const savedCost = savedKwh * rate * taxMult;
+        recs.push({
+          icon: 'fa-temperature-half', type: 'red',
+          title: `Water Heater running ${a.hours}h/day — consider reducing`,
+          desc: `Water heaters are most efficient when used in short bursts. Reducing usage to 2h/day should be sufficient for most households.`,
+          saving: `Potential saving: ${currency} ${savedCost.toFixed(0)}/month`
+        });
+      }
+    }
+
+    // Iron left on long
+    if (a.name.includes('Iron') && a.hours > 1) {
+      recs.push({
+        icon: 'fa-plug-circle-xmark', type: 'yellow',
+        title: `Electric Iron usage seems high (${a.hours}h/day)`,
+        desc: `Batch your ironing sessions to 2-3 times per week instead of daily. Use the iron's auto-off feature if available.`,
+        saving: `Estimated saving: ${currency} ${(a.dailyKwh * (a.hours - 0.5) / a.hours * 30 * rate * taxMult).toFixed(0)}/month`
+      });
+    }
+
+    // Washing machine — cold wash tip
+    if (a.name.includes('Washing Machine') && a.hours >= 1) {
+      recs.push({
+        icon: 'fa-shirt', type: 'blue',
+        title: `Use cold water wash mode on Washing Machine`,
+        desc: `About 90% of washing machine energy goes to heating water. Using cold wash saves energy with equivalent cleaning results for most loads.`,
+        saving: `Estimated saving: up to 15% of washing machine cost`
+      });
+    }
+  });
+
+  // General: high total bill
+  if (monthlyCost > 5000) {
+    recs.push({
+      icon: 'fa-solar-panel', type: 'green',
+      title: `Your monthly bill of ${currency} ${fmt(monthlyCost)} makes solar viable`,
+      desc: `With this electricity consumption level, a 3-5kW solar system could offset 60-80% of your bill, typically paying back in 4-5 years in Pakistan.`,
+      saving: `Estimated saving: up to ${currency} ${(monthlyCost * 0.70).toFixed(0)}/month after investment`
+    });
+  }
+
+  // Peak hour advice
+  if (totalDailyKwh > 20) {
+    recs.push({
+      icon: 'fa-clock', type: 'blue',
+      title: `Shift heavy loads to off-peak hours`,
+      desc: `Run high-wattage appliances (washing machine, iron, dishwasher) early morning or late night when grid demand is lower and electricity quality is better.`,
+      saving: `Avoid load-shedding damage to appliances`
+    });
+  }
+
+  // UPS tip
+  const hasUPS = applianceData.some(a => a.name.includes('UPS'));
+  if (!hasUPS) {
+    recs.push({
+      icon: 'fa-battery-full', type: 'green',
+      title: `Consider a solar-hybrid UPS system`,
+      desc: `A solar UPS/hybrid inverter can charge from solar panels during the day and power critical loads during outages, reducing grid dependency.`,
+      saving: `Long-term grid bill reduction`
+    });
+  }
+
+  // Standby power
+  recs.push({
+    icon: 'fa-plug', type: 'yellow',
+    title: `Eliminate standby/phantom power losses`,
+    desc: `TVs, chargers, routers, and set-top boxes consume 5-15W even on standby. Use smart power strips or switch off at the socket when not in use.`,
+    saving: `Estimated saving: ${currency} ${(0.08 * 30 * rate * taxMult).toFixed(0)}/month`
+  });
+
+  if (recs.length === 0) {
+    recs.push({
+      icon: 'fa-star', type: 'green',
+      title: 'Your energy usage looks efficient!',
+      desc: 'No major issues detected. Continue monitoring your consumption regularly and consider adding more appliances to track.',
+      saving: null
+    });
+  }
+
+  container.innerHTML = recs.map(r => `
+    <div class="rec-item">
+      <div class="rec-icon ${r.type}"><i class="fa-solid ${r.icon}"></i></div>
+      <div>
+        <div class="rec-title">${r.title}</div>
+        <div class="rec-desc">${r.desc}</div>
+        ${r.saving ? `<div class="rec-saving"><i class="fa-solid fa-circle-check"></i> ${r.saving}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== POTENTIAL SAVINGS CALCULATION =====
+function updatePotentialSavings(applianceData, rate, currency, taxMult) {
+  let totalSaving = 0;
+  applianceData.forEach(a => {
+    const monthlyKwh = a.dailyKwh * 30;
+    const monthlyCost = monthlyKwh * rate * taxMult;
+    if (a.name.includes('Non-Inverter') && a.name.includes('AC')) totalSaving += monthlyCost * 0.40;
+    if (a.name.includes('Tube Light') && a.qty >= 2) totalSaving += monthlyCost * 0.75;
+    if (a.name.includes('Geyser') && a.hours > 3) totalSaving += monthlyCost * 0.35;
+  });
+  totalSaving += 0.08 * 30 * rate * taxMult; // standby
+  const el = document.getElementById('potentialSavings');
+  el.textContent = totalSaving > 0 ? `${currency} ${totalSaving.toFixed(0)}/month` : 'Optimized!';
+}
+
+// ===== UPDATE CURRENCY LABELS =====
+function updateCurrencyLabels() {
+  calculate();
+}
+
+// ===== SAVE TO LOCALSTORAGE =====
+function saveData() {
+  const rows = document.querySelectorAll('.appliance-row');
+  const appliances = [];
+  rows.forEach(row => {
+    const sel = row.querySelector('select');
+    appliances.push({
+      name: sel ? sel.value : 'Custom',
+      watts: row.querySelector('.watts').value,
+      qty: row.querySelector('.qty').value,
+      hours: row.querySelector('.hours').value,
+    });
+  });
+  const data = {
+    unitRate: document.getElementById('unitRate').value,
+    taxRate: document.getElementById('taxRate').value,
+    currency: document.getElementById('currencyLabel').value,
+    userName: document.getElementById('userName').value,
+    appliances,
+    savedAt: new Date().toISOString(),
+  };
+  localStorage.setItem('wattwise_data', JSON.stringify(data));
+  showToast('Audit data saved to browser storage!', 'success');
+}
+
+// ===== LOAD FROM LOCALSTORAGE =====
+function loadData() {
+  const raw = localStorage.getItem('wattwise_data');
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    if (data.unitRate) document.getElementById('unitRate').value = data.unitRate;
+    if (data.taxRate) document.getElementById('taxRate').value = data.taxRate;
+    if (data.currency) document.getElementById('currencyLabel').value = data.currency;
+    if (data.userName) document.getElementById('userName').value = data.userName;
+    if (data.appliances && data.appliances.length) {
+      document.getElementById('applianceList').innerHTML = '';
+      data.appliances.forEach(a => addAppliance(a.name, a.watts, a.qty, a.hours));
+    }
+    showToast('Previous audit data restored!', 'info');
+  } catch (e) {
+    console.warn('Could not load saved data:', e);
+  }
+}
+
+// ===== CLEAR ALL =====
+function clearAll() {
+  if (!confirm('Clear all appliances and start fresh?')) return;
+  document.getElementById('applianceList').innerHTML = '';
+  localStorage.removeItem('wattwise_data');
+  lastCalcData = null;
+  document.getElementById('daily-kwh').textContent = '0.00';
+  document.getElementById('monthly-kwh').textContent = '0.00';
+  document.getElementById('daily-cost').textContent = '0';
+  document.getElementById('monthly-cost').textContent = '0';
+  document.getElementById('yearly-kwh').textContent = '0';
+  document.getElementById('yearly-cost').textContent = '0';
+  document.getElementById('potentialSavings').textContent = '—';
+  document.getElementById('topConsumers').innerHTML = `<div class="empty-state"><i class="fa-solid fa-bolt-lightning"></i><p>Add appliances and calculate.</p></div>`;
+  document.getElementById('recList').innerHTML = `<div class="empty-state"><i class="fa-solid fa-lightbulb"></i><p>Recommendations appear after calculation.</p></div>`;
+  if (pieChartInstance) { pieChartInstance.destroy(); pieChartInstance = null; }
+  showToast('Data cleared.', 'info');
+}
+
+// ===== PRINT REPORT =====
+function printReport() {
+  document.getElementById('report-date').textContent =
+    'Generated on: ' + new Date().toLocaleDateString('en-PK', {weekday:'long', year:'numeric', month:'long', day:'numeric'}) +
+    ' | User: ' + (document.getElementById('userName').value || 'WattWise User');
+  window.print();
+}
+
+// ===== TOAST NOTIFICATIONS =====
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-info'}"></i> ${msg}`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+</script>
+</body>
+</html>
