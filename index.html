@@ -431,11 +431,12 @@
       </div>
 
       <div class="form-group">
-        <label>Fuel Adjustment / Tax Surcharge (%)</label>
+        <label>Fuel Adjustment <span style="color:var(--accent);font-weight:700">(PKR per kWh)</span></label>
         <div class="input-with-icon">
-          <span>%</span>
-          <input type="number" id="taxRate" value="0" min="0" max="100" step="0.5" style="padding-left:38px"/>
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--accent)">PKR</span>
+          <input type="number" id="taxRate" value="0" step="0.5" placeholder="e.g. 3.5 or -2" style="padding-left:52px"/>
         </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:5px"><i class="fa-solid fa-circle-info"></i> Flat PKR amount added per kWh consumed. Use a negative value for subsidies.</div>
       </div>
 
       <div class="savings-box">
@@ -675,9 +676,11 @@ function removeAppliance(id) {
 
 // ===== MAIN CALCULATION ENGINE =====
 function calculate() {
-  const rate = parseFloat(document.getElementById('unitRate').value) || 50;
-  const taxPct = parseFloat(document.getElementById('taxRate').value) || 0;
-  const taxMult = 1 + (taxPct / 100);
+  const baseRate = parseFloat(document.getElementById('unitRate').value) || 50;
+  // Fuel adjustment is a FLAT amount per kWh (can be positive or negative for subsidies)
+  const fuelAdj  = parseFloat(document.getElementById('taxRate').value) || 0;
+  // Effective rate per kWh — never allow it to go below zero
+  const effectiveRate = Math.max(0, baseRate + fuelAdj);
   const currency = document.getElementById('currencyLabel').value || 'PKR';
 
   const rows = document.querySelectorAll('.appliance-row');
@@ -686,45 +689,47 @@ function calculate() {
   rows.forEach(row => {
     const sel = row.querySelector('select');
     const name = sel ? sel.value : 'Appliance';
-    const watts = parseFloat(row.querySelector('.watts').value) || 0;
-    const qty = parseInt(row.querySelector('.qty').value) || 1;
-    const hours = parseFloat(row.querySelector('.hours').value) || 0;
+    const watts = Math.max(0, parseFloat(row.querySelector('.watts').value) || 0);
+    const qty   = Math.max(1, parseInt(row.querySelector('.qty').value)   || 1);
+    const hours = Math.max(0, parseFloat(row.querySelector('.hours').value) || 0);
     const dailyKwh = (watts * qty * hours) / 1000;
     applianceData.push({ name, watts, qty, hours, dailyKwh });
   });
 
-  const totalDailyKwh = applianceData.reduce((s, a) => s + a.dailyKwh, 0);
+  const totalDailyKwh   = applianceData.reduce((s, a) => s + a.dailyKwh, 0);
   const totalMonthlyKwh = totalDailyKwh * 30;
-  const totalYearlyKwh = totalDailyKwh * 365;
+  const totalYearlyKwh  = totalDailyKwh * 365;
 
-  const dailyCost = totalDailyKwh * rate * taxMult;
-  const monthlyCost = totalMonthlyKwh * rate * taxMult;
-  const yearlyCost = totalYearlyKwh * rate * taxMult;
+  // Cost = kWh × effectiveRate — clamped to 0 so bills are NEVER negative
+  const dailyCost   = Math.max(0, totalDailyKwh   * effectiveRate);
+  const monthlyCost = Math.max(0, totalMonthlyKwh * effectiveRate);
+  const yearlyCost  = Math.max(0, totalYearlyKwh  * effectiveRate);
 
   // Update KPIs
-  document.getElementById('daily-kwh').textContent = totalDailyKwh.toFixed(2);
-  document.getElementById('monthly-kwh').textContent = totalMonthlyKwh.toFixed(1);
-  document.getElementById('daily-cost').textContent = fmt(dailyCost);
-  document.getElementById('monthly-cost').textContent = fmt(monthlyCost);
-  document.getElementById('yearly-kwh').textContent = totalYearlyKwh.toFixed(0);
-  document.getElementById('yearly-cost').textContent = currency + ' ' + fmt(yearlyCost);
-  document.getElementById('daily-cost-cur').textContent = currency + '/day';
+  document.getElementById('daily-kwh').textContent   = totalDailyKwh.toFixed(2);
+  document.getElementById('monthly-kwh').textContent  = totalMonthlyKwh.toFixed(1);
+  document.getElementById('daily-cost').textContent   = fmt(dailyCost);
+  document.getElementById('monthly-cost').textContent  = fmt(monthlyCost);
+  document.getElementById('yearly-kwh').textContent   = totalYearlyKwh.toFixed(0);
+  document.getElementById('yearly-cost').textContent  = currency + ' ' + fmt(yearlyCost);
+  document.getElementById('daily-cost-cur').textContent  = currency + '/day';
   document.getElementById('monthly-cost-cur').textContent = currency + '/month';
 
-  // Store for switching tabs
-  lastCalcData = { applianceData, totalDailyKwh, totalMonthlyKwh, totalYearlyKwh, dailyCost, monthlyCost, yearlyCost, rate, currency, taxMult };
+  // Store for switching tabs — pass effectiveRate so all sub-functions use the same safe rate
+  const taxMult = 1; // legacy param kept for compatibility; effectiveRate already includes adjustment
+  lastCalcData = { applianceData, totalDailyKwh, totalMonthlyKwh, totalYearlyKwh, dailyCost, monthlyCost, yearlyCost, rate: effectiveRate, currency, taxMult };
 
   // Update chart
   updateChart(applianceData, currentTab, totalDailyKwh);
 
   // Top consumers
-  updateTopConsumers(applianceData, totalDailyKwh, rate, currency, taxMult);
+  updateTopConsumers(applianceData, totalDailyKwh, effectiveRate, currency, taxMult);
 
   // Recommendations
-  generateRecommendations(applianceData, totalDailyKwh, monthlyCost, rate, currency, taxMult);
+  generateRecommendations(applianceData, totalDailyKwh, monthlyCost, effectiveRate, currency, taxMult);
 
   // Potential savings
-  updatePotentialSavings(applianceData, rate, currency, taxMult);
+  updatePotentialSavings(applianceData, effectiveRate, currency, taxMult);
 }
 
 // ===== SWITCH TAB =====
@@ -834,7 +839,7 @@ function updateTopConsumers(applianceData, totalDailyKwh, rate, currency, taxMul
     const pct = totalDailyKwh > 0 ? ((a.dailyKwh / totalDailyKwh) * 100).toFixed(1) : 0;
     const barWidth = maxKwh > 0 ? ((a.dailyKwh / maxKwh) * 100).toFixed(1) : 0;
     const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
-    const monthlyCost = (a.dailyKwh * 30 * rate * taxMult).toFixed(0);
+    const monthlyCost = Math.max(0, a.dailyKwh * 30 * rate * taxMult).toFixed(0);
     return `
       <tr>
         <td><span class="rank-badge ${rankClass}">${i + 1}</span></td>
@@ -866,7 +871,7 @@ function generateRecommendations(applianceData, totalDailyKwh, monthlyCost, rate
   // Analyse each appliance type
   applianceData.forEach(a => {
     const monthlyKwh = a.dailyKwh * 30;
-    const monthlyCostItem = monthlyKwh * rate * taxMult;
+    const monthlyCostItem = Math.max(0, monthlyKwh * rate * taxMult);
     const pct = totalDailyKwh > 0 ? ((a.dailyKwh / totalDailyKwh) * 100).toFixed(0) : 0;
 
     // Non-Inverter AC → Inverter AC
@@ -996,12 +1001,15 @@ function updatePotentialSavings(applianceData, rate, currency, taxMult) {
   let totalSaving = 0;
   applianceData.forEach(a => {
     const monthlyKwh = a.dailyKwh * 30;
-    const monthlyCost = monthlyKwh * rate * taxMult;
+    // Clamp individual item cost to 0 before multiplying saving fraction
+    const monthlyCost = Math.max(0, monthlyKwh * rate * taxMult);
     if (a.name.includes('Non-Inverter') && a.name.includes('AC')) totalSaving += monthlyCost * 0.40;
     if (a.name.includes('Tube Light') && a.qty >= 2) totalSaving += monthlyCost * 0.75;
     if (a.name.includes('Geyser') && a.hours > 3) totalSaving += monthlyCost * 0.35;
   });
-  totalSaving += 0.08 * 30 * rate * taxMult; // standby
+  // Clamp standby saving and total to 0
+  totalSaving += Math.max(0, 0.08 * 30 * rate * taxMult); // standby phantom load
+  totalSaving = Math.max(0, totalSaving);
   const el = document.getElementById('potentialSavings');
   el.textContent = totalSaving > 0 ? `${currency} ${totalSaving.toFixed(0)}/month` : 'Optimized!';
 }
