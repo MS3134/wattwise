@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
   /* ===== CSS VARIABLES & RESET ===== */
   :root {
@@ -356,6 +357,54 @@
   .kpi-card:nth-child(5) { animation-delay: 0.28s; }
   .kpi-card:nth-child(6) { animation-delay: 0.35s; }
 
+  /* ===== AMAZON AFFILIATE BUTTON ===== */
+  .btn-amazon {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 12px; padding: 9px 18px;
+    background: linear-gradient(135deg, #ff9900, #e47911);
+    color: #111; font-family: var(--font-body); font-size: 13px; font-weight: 700;
+    border: none; border-radius: 8px; cursor: pointer; text-decoration: none;
+    box-shadow: 0 4px 14px rgba(255,153,0,0.35); transition: var(--transition);
+    letter-spacing: 0.2px;
+  }
+  .btn-amazon:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(255,153,0,0.5); background: linear-gradient(135deg, #ffaa22, #ff9900); }
+  .btn-amazon i { font-size: 14px; }
+  .btn-amazon .amz-sub { font-size: 10px; font-weight: 500; opacity: 0.8; display: block; line-height: 1; }
+
+  /* ===== OCR UPLOAD CARD ===== */
+  .ocr-upload-zone {
+    border: 2px dashed var(--border2); border-radius: var(--radius2);
+    padding: 28px 20px; text-align: center; cursor: pointer;
+    transition: var(--transition); background: var(--bg2);
+    position: relative;
+  }
+  .ocr-upload-zone:hover, .ocr-upload-zone.drag-over {
+    border-color: var(--accent); background: rgba(34,211,238,0.04);
+  }
+  .ocr-upload-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .ocr-upload-zone i { font-size: 32px; color: var(--accent); margin-bottom: 10px; display: block; }
+  .ocr-upload-zone p { font-size: 14px; color: var(--text2); margin-bottom: 4px; }
+  .ocr-upload-zone small { font-size: 11px; color: var(--text3); }
+  .ocr-progress {
+    margin-top: 14px; display: none;
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px;
+  }
+  .ocr-progress-bar-wrap { height: 6px; background: var(--border); border-radius: 3px; margin: 8px 0; overflow: hidden; }
+  .ocr-progress-bar { height: 100%; width: 0%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent3)); transition: width 0.3s ease; }
+  .ocr-progress-text { font-size: 12px; color: var(--text2); }
+  .ocr-result-box {
+    margin-top: 12px; display: none;
+    background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.3);
+    border-radius: 8px; padding: 14px 16px;
+  }
+  .ocr-result-box .ocr-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .ocr-result-box .ocr-row:last-child { margin-bottom: 0; }
+  .ocr-result-box label { font-size: 12px; color: var(--text2); margin: 0; min-width: 120px; }
+  .ocr-result-box input { flex: 1; padding: 7px 12px; font-size: 13px; min-width: 80px; }
+  .ocr-preview { max-width: 100%; max-height: 140px; border-radius: 8px; margin-top: 10px; display: none; object-fit: cover; border: 1px solid var(--border); }
+
   /* ===== SAVINGS HIGHLIGHT ===== */
   .savings-box {
     background: linear-gradient(135deg, rgba(52,211,153,0.1), rgba(34,211,238,0.07));
@@ -395,6 +444,57 @@
   <div class="hero no-print">
     <h1>Audit Your Home's <span class="hl">Energy Footprint</span></h1>
     <p>Add your appliances, set usage hours, and instantly discover where your electricity bill is going — and how to cut it.</p>
+  </div>
+
+  <!-- ===== BILL SCANNER (OCR) CARD ===== -->
+  <div class="card no-print" style="margin-bottom:24px; animation-delay:0.02s; border-color:rgba(34,211,238,0.2); background:linear-gradient(135deg, rgba(34,211,238,0.04), rgba(129,140,248,0.03))">
+    <div class="card-title"><i class="fa-solid fa-file-invoice"></i> Smart Bill Scanner — Upload Your Electricity Bill</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start">
+      <div>
+        <div class="ocr-upload-zone" id="ocrZone">
+          <input type="file" id="billImageInput" accept="image/*" onchange="handleBillUpload(event)"/>
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <p><strong>Click or Drag & Drop</strong> your bill image here</p>
+          <small>Supports JPG, PNG, WEBP — Scanned bills, photos, screenshots</small>
+        </div>
+        <img id="ocrPreview" class="ocr-preview" alt="Bill Preview"/>
+        <div class="ocr-progress" id="ocrProgress">
+          <div class="ocr-progress-text" id="ocrProgressText">🔍 Scanning bill image…</div>
+          <div class="ocr-progress-bar-wrap"><div class="ocr-progress-bar" id="ocrProgressBar"></div></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:13px; color:var(--text2); margin-bottom:14px; line-height:1.6">
+          <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--accent)"></i>
+          &nbsp;Our AI scanner reads your bill image and auto-fills the fields below. You can manually edit the extracted values before applying.
+        </div>
+        <div class="ocr-result-box" id="ocrResultBox">
+          <div class="ocr-row">
+            <label><i class="fa-solid fa-bolt" style="color:var(--accent)"></i> Units Consumed (kWh)</label>
+            <input type="number" id="ocrUnits" placeholder="e.g. 320" min="0"/>
+          </div>
+          <div class="ocr-row">
+            <label><i class="fa-solid fa-receipt" style="color:var(--yellow)"></i> Bill Amount (PKR)</label>
+            <input type="number" id="ocrBillAmount" placeholder="e.g. 4500" min="0"/>
+          </div>
+          <div class="ocr-row">
+            <label><i class="fa-solid fa-calendar" style="color:var(--green)"></i> Unit Rate (auto-calc)</label>
+            <input type="number" id="ocrUnitRate" placeholder="Auto from above" min="0" readonly style="color:var(--accent); font-weight:600"/>
+          </div>
+          <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap">
+            <button class="btn btn-primary" style="padding:9px 16px; font-size:13px" onclick="applyOcrValues()">
+              <i class="fa-solid fa-check"></i> Apply to Audit
+            </button>
+            <button class="btn btn-outline" style="padding:9px 16px; font-size:13px" onclick="clearOcr()">
+              <i class="fa-solid fa-xmark"></i> Clear
+            </button>
+          </div>
+        </div>
+        <div id="ocrTip" style="font-size:12px; color:var(--text3); margin-top:10px; line-height:1.6">
+          <i class="fa-solid fa-circle-info"></i> For best results, use a clear, well-lit photo of your WAPDA/KESC/LESCO/HESCO bill. The scanner looks for <strong style="color:var(--text2)">Units</strong> and <strong style="color:var(--text2)">Amount Payable</strong> fields.
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ===== MAIN GRID ===== -->
@@ -881,7 +981,11 @@ function generateRecommendations(applianceData, totalDailyKwh, monthlyCost, rate
         icon: 'fa-snowflake', type: 'red',
         title: `${a.name} is your biggest energy drain (${pct}%)`,
         desc: `This AC consumes ~${monthlyKwh.toFixed(0)} kWh/month. Switching to an Inverter AC model can reduce consumption by up to 40%.`,
-        saving: `Potential saving: ${currency} ${saving.toFixed(0)}/month`
+        saving: `Potential saving: ${currency} ${saving.toFixed(0)}/month`,
+        amazonBtn: {
+          url: 'https://www.amazon.com/s?k=inverter+air+conditioner+energy+saving&tag=saadullahaf07-20',
+          label: 'Shop Inverter ACs on Amazon'
+        }
       });
     }
 
@@ -895,7 +999,11 @@ function generateRecommendations(applianceData, totalDailyKwh, monthlyCost, rate
           icon: 'fa-lightbulb', type: 'yellow',
           title: `Lighting load optimization opportunity`,
           desc: `You have ${a.qty} ${a.name}(s). Replacing them with 9W LED bulbs can significantly reduce your lighting bill.`,
-          saving: `Potential saving: ${currency} ${ledSave.toFixed(0)}/month`
+          saving: `Potential saving: ${currency} ${ledSave.toFixed(0)}/month`,
+          amazonBtn: {
+            url: 'https://www.amazon.com/s?k=smart+energy+saving+LED+bulbs+9W&tag=saadullahaf07-20',
+            label: 'Shop Energy-Saving LED Bulbs on Amazon'
+          }
         });
       }
     }
@@ -942,7 +1050,11 @@ function generateRecommendations(applianceData, totalDailyKwh, monthlyCost, rate
       icon: 'fa-solar-panel', type: 'green',
       title: `Your monthly bill of ${currency} ${fmt(monthlyCost)} makes solar viable`,
       desc: `With this electricity consumption level, a 3-5kW solar system could offset 60-80% of your bill, typically paying back in 4-5 years in Pakistan.`,
-      saving: `Estimated saving: up to ${currency} ${(monthlyCost * 0.70).toFixed(0)}/month after investment`
+      saving: `Estimated saving: up to ${currency} ${(monthlyCost * 0.70).toFixed(0)}/month after investment`,
+      amazonBtn: {
+        url: 'https://www.amazon.com/s?k=solar+hybrid+inverter+home+system&tag=saadullahaf07-20',
+        label: 'Shop Solar Hybrid Inverters on Amazon'
+      }
     });
   }
 
@@ -963,7 +1075,11 @@ function generateRecommendations(applianceData, totalDailyKwh, monthlyCost, rate
       icon: 'fa-battery-full', type: 'green',
       title: `Consider a solar-hybrid UPS system`,
       desc: `A solar UPS/hybrid inverter can charge from solar panels during the day and power critical loads during outages, reducing grid dependency.`,
-      saving: `Long-term grid bill reduction`
+      saving: `Long-term grid bill reduction`,
+      amazonBtn: {
+        url: 'https://www.amazon.com/s?k=solar+hybrid+inverter+UPS+home&tag=saadullahaf07-20',
+        label: 'Shop Solar Hybrid UPS Systems on Amazon'
+      }
     });
   }
 
@@ -987,10 +1103,18 @@ function generateRecommendations(applianceData, totalDailyKwh, monthlyCost, rate
   container.innerHTML = recs.map(r => `
     <div class="rec-item">
       <div class="rec-icon ${r.type}"><i class="fa-solid ${r.icon}"></i></div>
-      <div>
+      <div style="flex:1">
         <div class="rec-title">${r.title}</div>
         <div class="rec-desc">${r.desc}</div>
         ${r.saving ? `<div class="rec-saving"><i class="fa-solid fa-circle-check"></i> ${r.saving}</div>` : ''}
+        ${r.amazonBtn ? `
+          <a href="${r.amazonBtn.url}" target="_blank" rel="noopener" class="btn-amazon no-print">
+            <i class="fa-brands fa-amazon"></i>
+            <span>
+              ${r.amazonBtn.label}
+              <span class="amz-sub">via Amazon · Affiliate Link</span>
+            </span>
+          </a>` : ''}
       </div>
     </div>
   `).join('');
@@ -1100,6 +1224,248 @@ function showToast(msg, type = 'info') {
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
 }
+
+/* ====================================================
+   OCR / BILL SCANNER FUNCTIONS (Tesseract.js)
+   ==================================================== */
+
+// ===== HANDLE BILL IMAGE UPLOAD =====
+async function handleBillUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    showToast('Please upload an image file (JPG, PNG, WEBP).', 'info');
+    return;
+  }
+
+  // Show preview
+  const preview = document.getElementById('ocrPreview');
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = 'block';
+
+  // Show progress bar, hide result box
+  const progressEl  = document.getElementById('ocrProgress');
+  const progressBar = document.getElementById('ocrProgressBar');
+  const progressTxt = document.getElementById('ocrProgressText');
+  const resultBox   = document.getElementById('ocrResultBox');
+  const tipEl       = document.getElementById('ocrTip');
+
+  progressEl.style.display  = 'block';
+  resultBox.style.display    = 'none';
+  progressBar.style.width    = '0%';
+  progressTxt.textContent    = '🔍 Loading OCR engine…';
+
+  try {
+    // Run Tesseract OCR with progress callback
+    const result = await Tesseract.recognize(file, 'eng', {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          const pct = Math.round((m.progress || 0) * 100);
+          progressBar.style.width = pct + '%';
+          progressTxt.textContent = `🔍 Scanning… ${pct}%`;
+        } else if (m.status === 'loading tesseract core') {
+          progressTxt.textContent = '⚙️ Loading OCR core…';
+          progressBar.style.width = '10%';
+        } else if (m.status === 'initializing tesseract') {
+          progressTxt.textContent = '⚙️ Initializing…';
+          progressBar.style.width = '20%';
+        } else if (m.status === 'loading language traineddata') {
+          progressTxt.textContent = '📚 Loading language data…';
+          progressBar.style.width = '35%';
+        }
+      }
+    });
+
+    progressBar.style.width = '100%';
+    progressTxt.textContent = '✅ Scan complete! Extracting values…';
+
+    const text = result.data.text;
+    const extracted = extractBillValues(text);
+
+    // Fill extracted fields
+    document.getElementById('ocrUnits').value      = extracted.units      !== null ? extracted.units      : '';
+    document.getElementById('ocrBillAmount').value = extracted.billAmount  !== null ? extracted.billAmount : '';
+
+    // Auto-calculate unit rate if both available
+    if (extracted.units && extracted.billAmount && extracted.units > 0) {
+      const calcRate = (extracted.billAmount / extracted.units).toFixed(2);
+      document.getElementById('ocrUnitRate').value = calcRate;
+    } else {
+      document.getElementById('ocrUnitRate').value = '';
+    }
+
+    // Bind live recalculation for ocrUnits + ocrBillAmount
+    document.getElementById('ocrUnits').addEventListener('input', recalcOcrRate);
+    document.getElementById('ocrBillAmount').addEventListener('input', recalcOcrRate);
+
+    resultBox.style.display = 'block';
+    tipEl.style.display     = 'none';
+
+    if (extracted.units !== null || extracted.billAmount !== null) {
+      showToast('Bill scanned! Review and apply the extracted values.', 'success');
+    } else {
+      showToast('Scan done — values not auto-detected. Please enter manually.', 'info');
+    }
+
+  } catch (err) {
+    console.error('OCR Error:', err);
+    progressTxt.textContent = '❌ Scan failed. Please try a clearer image.';
+    progressBar.style.background = 'var(--red)';
+    showToast('OCR scan failed. Try a clearer image.', 'info');
+  }
+}
+
+// ===== RECALCULATE RATE FROM OCR INPUTS =====
+function recalcOcrRate() {
+  const units  = parseFloat(document.getElementById('ocrUnits').value)      || 0;
+  const amount = parseFloat(document.getElementById('ocrBillAmount').value) || 0;
+  const rateEl = document.getElementById('ocrUnitRate');
+  if (units > 0 && amount > 0) {
+    rateEl.value = (amount / units).toFixed(2);
+  } else {
+    rateEl.value = '';
+  }
+}
+
+// ===== EXTRACT BILL VALUES FROM OCR TEXT =====
+function extractBillValues(text) {
+  let units      = null;
+  let billAmount = null;
+
+  // Normalise text: remove extra spaces, make uppercase for matching
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  // ---- Patterns for Units/kWh consumed ----
+  // Covers: "Units: 320", "Consumed Units 320", "kWh 320", "Units Consumed: 320.00"
+  const unitPatterns = [
+    /(?:units?\s*consumed|consumed\s*units?|units?\s*used|net\s*units?|total\s*units?|kwh)[:\s\-]*([0-9]{1,6}(?:\.[0-9]{1,2})?)/i,
+    /([0-9]{2,6}(?:\.[0-9]{1,2})?)\s*(?:units?|kwh)/i,
+  ];
+
+  // ---- Patterns for Amount / Bill total ----
+  // Covers: "Amount Payable: 4500", "Total Bill: Rs. 4500", "Net Payable 4,500"
+  const amountPatterns = [
+    /(?:amount\s*payable|total\s*(?:bill|amount|payable)|net\s*payable|payable\s*amount|bill\s*amount|grand\s*total)[:\s\-Rs.]*([\d,]{2,10}(?:\.[0-9]{1,2})?)/i,
+    /(?:Rs\.?|PKR|INR)[:\s]*([\d,]{2,10}(?:\.[0-9]{1,2})?)/i,
+  ];
+
+  // Search line by line for better context
+  for (const line of lines) {
+    if (units === null) {
+      for (const pat of unitPatterns) {
+        const m = line.match(pat);
+        if (m) {
+          const val = parseFloat(m[1].replace(/,/g, ''));
+          // Sanity check: units should be between 1 and 99999
+          if (val >= 1 && val <= 99999) { units = val; break; }
+        }
+      }
+    }
+    if (billAmount === null) {
+      for (const pat of amountPatterns) {
+        const m = line.match(pat);
+        if (m) {
+          const val = parseFloat(m[1].replace(/,/g, ''));
+          // Sanity check: bill amount between 50 and 9,999,999
+          if (val >= 50 && val <= 9999999) { billAmount = val; break; }
+        }
+      }
+    }
+    if (units !== null && billAmount !== null) break;
+  }
+
+  // Fallback: scan full text as one block
+  if (units === null) {
+    for (const pat of unitPatterns) {
+      const m = text.match(pat);
+      if (m) {
+        const val = parseFloat(m[1].replace(/,/g, ''));
+        if (val >= 1 && val <= 99999) { units = val; break; }
+      }
+    }
+  }
+  if (billAmount === null) {
+    for (const pat of amountPatterns) {
+      const m = text.match(pat);
+      if (m) {
+        const val = parseFloat(m[1].replace(/,/g, ''));
+        if (val >= 50 && val <= 9999999) { billAmount = val; break; }
+      }
+    }
+  }
+
+  return { units, billAmount };
+}
+
+// ===== APPLY OCR VALUES TO MAIN AUDIT INPUTS =====
+function applyOcrValues() {
+  const units    = parseFloat(document.getElementById('ocrUnits').value)      || 0;
+  const amount   = parseFloat(document.getElementById('ocrBillAmount').value) || 0;
+  const calcRate = parseFloat(document.getElementById('ocrUnitRate').value)   || 0;
+
+  let applied = false;
+
+  // If we have a calculated rate, update the unit rate input
+  if (calcRate > 0) {
+    document.getElementById('unitRate').value = calcRate.toFixed(2);
+    applied = true;
+  }
+
+  // If units extracted, show a helpful note (can't directly set total kWh since it's
+  // calculated from appliances — instead show informational toast with comparison)
+  if (units > 0) {
+    showToast(`Bill shows ${units} kWh consumed. Add your appliances to match this total!`, 'success');
+    applied = true;
+  }
+
+  if (amount > 0 && !applied) {
+    showToast(`Bill amount of PKR ${amount.toLocaleString()} noted. Unit rate applied.`, 'success');
+    applied = true;
+  }
+
+  if (!applied) {
+    showToast('No values to apply. Please fill the fields manually.', 'info');
+    return;
+  }
+
+  // Trigger recalculation with new rate
+  calculate();
+  showToast('Values applied! Scroll down to see your updated audit.', 'success');
+}
+
+// ===== CLEAR OCR SECTION =====
+function clearOcr() {
+  document.getElementById('billImageInput').value   = '';
+  document.getElementById('ocrUnits').value         = '';
+  document.getElementById('ocrBillAmount').value    = '';
+  document.getElementById('ocrUnitRate').value      = '';
+  document.getElementById('ocrPreview').style.display  = 'none';
+  document.getElementById('ocrProgress').style.display = 'none';
+  document.getElementById('ocrResultBox').style.display = 'none';
+  document.getElementById('ocrTip').style.display   = 'block';
+}
+
+// ===== DRAG & DROP SUPPORT FOR OCR ZONE =====
+document.addEventListener('DOMContentLoaded', () => {
+  const zone = document.getElementById('ocrZone');
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      // Inject into file input and trigger handler
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      const input = document.getElementById('billImageInput');
+      input.files = dt.files;
+      handleBillUpload({ target: { files: dt.files } });
+    }
+  });
+});
 </script>
 </body>
 </html>
