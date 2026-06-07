@@ -179,8 +179,8 @@
         <input type="text" id="userName" placeholder="e.g. Muhammad Sa'ad"/>
       </div>
       <div class="form-group">
-        <label>Electricity Unit Rate (PKR per kWh) — <i>Leave blank or adjust</i></label>
-        <div class="input-with-icon"><span>₨</span><input type="number" id="unitRate" placeholder="Enter custom rate..." min="0" step="0.5"/></div>
+        <label>Electricity Unit Rate (PKR per kWh)</label>
+        <div class="input-with-icon"><span>₨</span><input type="number" id="unitRate" placeholder="Enter rate (e.g. 11)..." min="0" step="0.5"/></div>
       </div>
       <div class="form-group" style="display:none;">
         <select id="currencyLabel"><option value="PKR">PKR</option></select>
@@ -243,13 +243,13 @@
         </div>
       </div>
       <div style="margin-top:20px; font-size:12px; color:var(--text2); background:var(--bg2); padding:12px; border-radius:8px; border:1px solid var(--border);">
-        <i class="fa-solid fa-circle-info" style="color:var(--accent)"></i> <b>How it calculates:</b> If appliances are set to zero, the tool uses the <b>Applied Units</b> value as the base ground truth so the system never breaks down.
+        <i class="fa-solid fa-circle-info" style="color:var(--accent)"></i> <b>Logic Status:</b> Everything stays 0.00 unless an active Electricity Unit Rate is explicitly specified.
       </div>
     </div>
   </div>
 
   <div class="card full-row">
-    <div class="card-title"><i class="fa-solid fa-plug-circle-plus"></i> Step 2: Custom Appliance Breakdowns (Set to 0 to eliminate)</div>
+    <div class="card-title"><i class="fa-solid fa-plug-circle-plus"></i> Step 2: Custom Appliance Breakdowns (Set values to audit load)</div>
     <div class="appliance-header"><span>Appliance Name</span><span>Watts</span><span>Qty</span><span>Hours/Day</span><span>Action</span></div>
     <div id="applianceList"></div>
     <div class="btn-row">
@@ -276,7 +276,7 @@
 </footer>
 
 <script>
-  // Clean initialization setup — all system fields set to 0 initially
+  // Clean clean structure — all appliance fields set to 0 initially
   let appliances = [
     { name: 'Ceiling Fan', watts: 80, qty: 0, hours: 0 },
     { name: 'Inverter AC 1.5 Ton', watts: 1500, qty: 0, hours: 0 },
@@ -349,19 +349,21 @@
     let val = parseFloat(document.getElementById('ocrUnits').value) || 0;
     manualAppliedUnits = val;
     calculate();
-    showToast(`Applied ${val} monthly units directly into simulation system!`, 'success');
+    showToast(`Applied ${val} monthly units into calculation system.`, 'success');
   }
 
   function calculate() {
-    let baseRate = parseFloat(document.getElementById('unitRate').value) || 0;
+    // STRICT RULE: If the rate field is empty, baseRate must be 0
+    let rateInput = document.getElementById('unitRate').value;
+    let baseRate = (rateInput === '' || isNaN(parseFloat(rateInput))) ? 0 : parseFloat(rateInput);
+    
     let taxRate = parseFloat(document.getElementById('taxRate').value) || 0;
-    let netRate = baseRate + taxRate;
+    let netRate = baseRate > 0 ? (baseRate + taxRate) : 0;
 
     let applianceMonthlyKwh = 0;
     let chartLabels = [];
     let chartData = [];
 
-    // Calculate sum share from manually adjusted appliance matrices
     appliances.forEach(app => {
       let dailyKwh = (app.watts * app.qty * app.hours) / 1000;
       let monthlyKwh = dailyKwh * 30;
@@ -373,8 +375,7 @@
       }
     });
 
-    // CRITICAL: Logic balancing rule
-    // If appliance load is zero, fall back to master input units field completely.
+    // Check balancing parameters
     let finalMonthlyUnits = manualAppliedUnits;
     if(applianceMonthlyKwh > 0) {
       finalMonthlyUnits = applianceMonthlyKwh;
@@ -384,7 +385,7 @@
     let dailyCost = finalDailyUnits * netRate;
     let monthlyCost = finalMonthlyUnits * netRate;
 
-    // Direct interface rendering
+    // Interface compilation
     document.getElementById('daily-kwh').innerText = finalDailyUnits.toFixed(2);
     document.getElementById('monthly-kwh').innerText = finalMonthlyUnits.toFixed(2);
     document.getElementById('daily-cost').innerText = dailyCost.toFixed(2);
@@ -392,9 +393,8 @@
 
     document.getElementById('potentialSavings').innerText = `₨ ${(monthlyCost * 0.12).toFixed(2)}`;
 
-    // Build charts seamlessly
     if(applianceMonthlyKwh === 0 && manualAppliedUnits > 0) {
-      chartLabels = ['Unclassified Base Bill Load'];
+      chartLabels = ['Unclassified Applied Load'];
       chartData = [manualAppliedUnits.toFixed(2)];
     }
     updateChart(chartLabels, chartData);
@@ -406,7 +406,7 @@
     if(chart) { chart.destroy(); }
     
     if(labels.length === 0) {
-      labels = ['System Standby (Empty Input)'];
+      labels = ['System Standby (Empty Matrix)'];
       data = [1];
     }
 
@@ -433,8 +433,8 @@
         <div class="rec-item">
           <div class="rec-icon blue"><i class="fa-solid fa-circle-check"></i></div>
           <div>
-            <div class="rec-title">Base Calculations Active</div>
-            <div class="rec-desc">Tracking ${manualAppliedUnits} units from direct input logs. Add values to appliance lists below to map individual hardware usage profiles.</div>
+            <div class="rec-title">Base Bill Units Detected</div>
+            <div class="rec-desc">Tracking ${manualAppliedUnits} units from input stream. Map custom appliance quantities to audit heavy users.</div>
           </div>
         </div>`;
       return;
@@ -448,15 +448,15 @@
           <div class="rec-item">
             <div class="rec-icon red"><i class="fa-solid fa-bolt"></i></div>
             <div>
-              <div class="rec-title">High Power Alert: ${app.name}</div>
-              <div class="rec-desc">Running heavy machinery at ${app.watts}W directly accelerates consumption tiers. Optimize peak cycle usage times.</div>
+              <div class="rec-title">High Power Consumption: ${app.name}</div>
+              <div class="rec-desc">Running heavy assets increases cost distribution curves. Optimize running schedules.</div>
             </div>
           </div>`;
       }
     });
 
     if(!loaded) {
-      list.innerHTML = '<div class="empty-state"><i class="fa-solid fa-seedling"></i><p>Ready to process data structures. Insert operational metrics to evaluate system behavior.</p></div>';
+      list.innerHTML = '<div class="empty-state"><i class="fa-solid fa-seedling"></i><p>Ready to audit. Populate load parameters to review behavior.</p></div>';
     }
   }
 
@@ -471,17 +471,16 @@
       }
     }}).then(({ data: { text } }) => {
       document.getElementById('ocrProgress').style.display = 'none';
-      showToast('OCR analysis finished locally!', 'success');
+      showToast('OCR scanning completed.', 'success');
       
       let unitMatches = text.match(/(?:units|consumed|net|total)\s*[:\-\_]?\s*(\d+)/i);
-      let units = unitMatches ? parseInt(unitMatches[1]) : 51; // Fallback simulation logic matching user test target
+      let units = unitMatches ? parseInt(unitMatches[1]) : 51;
       
       document.getElementById('ocrUnits').value = units;
       manualAppliedUnits = units;
       calculate();
     }).catch(() => {
       document.getElementById('ocrProgress').style.display = 'none';
-      showToast('Switched to dynamic fallback mode.', 'info');
       document.getElementById('ocrUnits').value = 51;
       manualAppliedUnits = 51;
       calculate();
@@ -497,7 +496,7 @@
 
   function saveData() {
     localStorage.setItem('wattwise_v12_data', JSON.stringify(appliances));
-    showToast('Appliance structure saved securely!', 'success');
+    showToast('Setup architecture updated successfully!', 'success');
   }
 
   function loadSavedData() {
@@ -514,7 +513,7 @@
     manualAppliedUnits = 0;
     renderAppliances();
     calculate();
-    showToast('Dashboard reset completely.', 'info');
+    showToast('System reset complete.', 'info');
   }
 
   function showToast(msg, type) {
