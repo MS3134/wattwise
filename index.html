@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WattWise Pro — Pakistan Bill Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f0f4f8;--white:#fff;--blue:#1d4ed8;--dark:#1e3a8a;--light:#dbeafe;
+  --green:#059669;--glight:#d1fae5;--warn:#d97706;--wlight:#fef3c7;
+  --red:#dc2626;--rlight:#fee2e2;--text:#0f172a;--t2:#475569;--t3:#94a3b8;
+  --border:#e2e8f0;--rad:16px;--sh:0 2px 12px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);}
+
+.header{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;padding:0;}
+.header-in{max-width:900px;margin:0 auto;padding:18px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:40px;height:40px;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);border-radius:10px;display:grid;place-items:center;font-size:18px;}
+.logo h1{font-size:17px;font-weight:700;}
+.logo p{font-size:11px;opacity:.7;margin-top:1px;}
+.badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;}
+
+.page{max-width:900px;margin:0 auto;padding:20px 14px 60px;}
+
+/* TOP INPUT BAR */
+.top-bar{background:var(--white);border-radius:var(--rad);box-shadow:var(--sh);padding:16px 18px;margin-bottom:14px;}
+.top-bar label{font-size:12px;font-weight:700;color:var(--t2);display:block;margin-bottom:5px;}
+.top-bar input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;font-family:inherit;background:var(--bg);}
+.top-bar input:focus{outline:none;border-color:var(--blue);}
+.top-bar p{font-size:11px;color:var(--t3);margin-top:5px;}
+
+/* UPLOAD */
+.upload-box{background:var(--white);border-radius:var(--rad);box-shadow:var(--sh);padding:26px 20px;margin-bottom:14px;text-align:center;border:2px dashed var(--border);cursor:pointer;position:relative;transition:.2s;}
+.upload-box:hover{border-color:var(--blue);background:var(--light);}
+.upload-box input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:2;}
+.upload-box h2{font-size:17px;font-weight:700;margin-bottom:6px;}
+.upload-box p{font-size:13px;color:var(--t2);}
+.upload-btn{display:inline-flex;align-items:center;gap:7px;margin-top:13px;background:var(--blue);color:#fff;padding:10px 22px;border-radius:25px;font-size:13px;font-weight:700;pointer-events:none;}
+#preview{display:none;max-width:200px;margin:12px auto 0;border-radius:9px;border:3px solid var(--blue);}
+
+/* MANUAL UNITS INPUT */
+.manual-box{background:var(--wlight);border:1.5px solid #f59e0b;border-radius:var(--rad);padding:16px 18px;margin-bottom:14px;display:none;}
+.manual-box.show{display:block;}
+.manual-box h4{color:var(--warn);font-size:13px;font-weight:700;margin-bottom:10px;}
+.manual-row{display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end;}
+.mf{flex:1;min-width:130px;}
+.mf label{font-size:11px;font-weight:600;color:var(--t2);display:block;margin-bottom:4px;}
+.mf input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;}
+.go-btn{background:var(--blue);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+/* PROGRESS */
+.prog-box{background:var(--white);border-radius:var(--rad);box-shadow:var(--sh);padding:14px 18px;margin-bottom:14px;display:none;}
+.prog-box.show{display:block;}
+.prog-label{font-size:13px;font-weight:600;color:var(--t2);margin-bottom:8px;}
+.prog-track{height:7px;background:var(--border);border-radius:4px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),#60a5fa);width:0%;transition:width .3s;}
+.prog-pct{font-size:11px;color:var(--t3);margin-top:4px;text-align:right;}
+
+/* STATUS / ERROR */
+.status-box{display:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;border-radius:12px;padding:14px 18px;margin-bottom:14px;align-items:center;gap:12px;}
+.status-box.show{display:flex;}
+.spinner{width:30px;height:30px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.error-box{display:none;background:var(--rlight);border:1.5px solid var(--red);border-radius:11px;padding:12px 16px;margin-bottom:14px;color:var(--red);font-weight:600;font-size:13px;align-items:center;gap:8px;}
+.error-box.show{display:flex;}
+
+/* RESULTS */
+#results{display:none;}
+#results.show{display:block;}
+
+/* BILL SUMMARY HERO */
+.hero{background:linear-gradient(135deg,#1e3a8a,#1d4ed8);color:#fff;border-radius:var(--rad);padding:20px;margin-bottom:14px;}
+.hero-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.hero-top h2{font-size:15px;font-weight:700;}
+.ref-tag{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:4px 11px;font-size:12px;}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+@media(max-width:540px){.kpi-grid{grid-template-columns:1fr 1fr;}}
+.kpi{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:12px;text-align:center;}
+.kpi-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;opacity:.7;margin-bottom:5px;}
+.kpi-val{font-size:19px;font-weight:800;}
+.kpi-unit{font-size:9px;opacity:.6;margin-top:2px;}
+
+/* SAVINGS */
+.savings{background:linear-gradient(135deg,#065f46,#059669);color:#fff;border-radius:var(--rad);padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;gap:14px;}
+.sav-icon{width:44px;height:44px;background:rgba(255,255,255,.15);border-radius:50%;display:grid;place-items:center;font-size:18px;flex-shrink:0;}
+.sav-label{font-size:12px;opacity:.85;margin-bottom:2px;}
+.sav-val{font-size:24px;font-weight:800;}
+.sav-sub{font-size:11px;opacity:.7;margin-top:2px;}
+
+/* APPLIANCE TABLE */
+.card{background:var(--white);border-radius:var(--rad);box-shadow:var(--sh);padding:18px;margin-bottom:14px;}
+.card-title{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+.card-title i{color:var(--blue);}
+.live-tag{background:var(--light);color:var(--dark);font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;text-transform:uppercase;}
+
+.tbl-head{display:grid;grid-template-columns:2fr 70px 100px 90px 80px;gap:6px;padding:7px 9px;background:var(--bg);border-radius:7px;margin-bottom:7px;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);}
+@media(max-width:520px){.tbl-head{display:none;}}
+
+.app-row{display:grid;grid-template-columns:2fr 70px 100px 90px 80px;gap:6px;align-items:center;padding:9px;background:var(--bg);border-radius:9px;margin-bottom:6px;border:1px solid var(--border);}
+@media(max-width:520px){.app-row{grid-template-columns:1fr 1fr;}}
+
+.app-name{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;}
+.app-em{font-size:16px;}
+.app-w{font-size:11px;color:var(--t3);text-align:center;}
+
+/* QTY BUTTONS */
+.qty{display:flex;align-items:center;gap:5px;justify-content:center;}
+.q-btn{width:24px;height:24px;border-radius:6px;border:1.5px solid var(--border);background:var(--white);cursor:pointer;font-size:14px;font-weight:700;color:var(--blue);display:grid;place-items:center;transition:.15s;line-height:1;}
+.q-btn:hover{background:var(--blue);color:#fff;border-color:var(--blue);}
+.q-num{font-size:14px;font-weight:700;min-width:20px;text-align:center;}
+
+/* HOURS */
+.hrs{display:flex;align-items:center;gap:4px;justify-content:center;}
+.hrs input{width:40px;padding:4px 5px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;text-align:center;font-family:inherit;}
+.hrs span{font-size:10px;color:var(--t3);}
+
+.app-kwh{font-size:12px;font-weight:700;color:var(--blue);text-align:center;}
+
+.total-bar{margin-top:10px;padding:10px 12px;background:var(--light);border-radius:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;}
+.total-bar span:first-child{font-size:13px;font-weight:700;color:var(--dark);}
+.total-bar span:last-child{font-size:17px;font-weight:800;color:var(--blue);}
+
+.recalc-bar{background:var(--light);border:1.5px solid var(--blue);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.recalc-bar p{font-size:12px;color:var(--dark);font-weight:600;}
+.recalc-btn{background:var(--blue);color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+/* BREAKDOWN */
+.bdr{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.bdr:last-child{border-bottom:none;font-weight:700;font-size:14px;color:var(--blue);}
+
+/* SLAB */
+.slab-row{display:flex;justify-content:space-between;padding:7px 9px;border-radius:7px;margin-bottom:4px;background:var(--bg);font-size:11px;}
+.slab-row.active{background:var(--light);border:2px solid var(--blue);font-weight:700;color:var(--dark);}
+
+/* CHART */
+.chart-wrap{height:200px;position:relative;}
+
+/* AFFILIATE */
+.aff-title{font-size:13px;font-weight:700;margin-bottom:11px;display:flex;align-items:center;gap:6px;}
+.aff-title i{color:#f59e0b;}
+.aff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px;margin-bottom:14px;}
+.aff-card{background:var(--white);border-radius:12px;box-shadow:var(--sh);padding:13px;text-align:center;border:1px solid var(--border);transition:.2s;}
+.aff-card:hover{transform:translateY(-2px);border-color:var(--blue);}
+.aff-card a{text-decoration:none;color:inherit;display:block;}
+.aff-em{font-size:24px;display:block;margin-bottom:6px;}
+.aff-name{font-size:11px;font-weight:700;margin-bottom:3px;}
+.aff-desc{font-size:10px;color:var(--t2);margin-bottom:8px;line-height:1.4;}
+.aff-btn{display:inline-block;background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;padding:5px 11px;border-radius:15px;font-size:10px;font-weight:700;}
+.aff-save{font-size:10px;color:var(--green);font-weight:700;margin-top:4px;}
+
+/* AI + RECS */
+.ai-card{background:var(--white);border-radius:var(--rad);box-shadow:var(--sh);padding:18px;margin-bottom:14px;border-top:4px solid var(--blue);}
+.ai-card h3{font-size:14px;font-weight:700;margin-bottom:10px;}
+.ai-text{font-size:13px;line-height:1.8;color:var(--t2);white-space:pre-wrap;}
+
+.rec{display:flex;gap:9px;padding:11px;background:var(--bg);border-radius:9px;margin-bottom:7px;border-left:4px solid var(--blue);}
+.rec.warn{border-left-color:var(--warn);background:var(--wlight);}
+.rec.ok{border-left-color:var(--green);background:var(--glight);}
+.rec.danger{border-left-color:var(--red);background:var(--rlight);}
+.rec-icon{font-size:16px;flex-shrink:0;}
+.rec-title{font-size:13px;font-weight:700;margin-bottom:2px;}
+.rec-desc{font-size:12px;color:var(--t2);line-height:1.5;}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+@media(max-width:580px){.two-col{grid-template-columns:1fr;}}
+
+.footer{text-align:center;padding:20px;color:var(--t3);font-size:11px;border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-in">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div><h1>WattWise Pro</h1><p>Pakistan AI Bill Calculator</p></div>
+    </div>
+    <div class="badge">🤖 AI Powered</div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- Reference ID input -->
+  <div class="top-bar">
+    <label>📋 Reference / Consumer ID (Optional)</label>
+    <input type="text" id="refInput" placeholder="Enter your Consumer Number from the bill (optional)"/>
+    <p>If you have your Consumer Number, enter it above. Otherwise just upload the bill image below.</p>
+  </div>
+
+  <!-- Upload -->
+  <div class="upload-box" id="uploadBox">
+    <input type="file" id="billFile" accept="image/*" onchange="handleFile(event)"/>
+    <h2>📄 Upload Electricity Bill</h2>
+    <p>LESCO · IESCO · HESCO · FESCO · MEPCO · WAPDA — all supported</p>
+    <div class="upload-btn"><i class="fa-solid fa-camera"></i> Select Image or Drag Here</div>
+    <img id="preview" src="" alt=""/>
+  </div>
+
+  <!-- OCR Progress -->
+  <div class="prog-box" id="progBox">
+    <div class="prog-label" id="progLabel">Reading bill...</div>
+    <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-pct" id="progPct">0%</div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-box" id="statusBox">
+    <div class="spinner"></div>
+    <div><b id="statusText">Processing...</b><br/><small id="statusSub" style="opacity:.8;font-size:11px;"></small></div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-box" id="errorBox">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span id="errorMsg"></span>
+  </div>
+
+  <!-- Manual fallback -->
+  <div class="manual-box" id="manualBox">
+    <h4>⚠️ Enter units manually (if image unclear)</h4>
+    <div class="manual-row">
+      <div class="mf"><label>Total Units (kWh)</label><input type="number" id="mUnits" placeholder="e.g. 51" min="1"/></div>
+      <div class="mf"><label>Total Bill Amount PKR (optional)</label><input type="number" id="mBill" placeholder="e.g. 1200"/></div>
+      <button class="go-btn" onclick="runManual()">⚡ Calculate</button>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-top">
+        <h2>📊 Bill Analysis</h2>
+        <div class="ref-tag" id="refDisplay">WattWise</div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">Bill Units</div><div class="kpi-val" id="kUnits">—</div><div class="kpi-unit">kWh (from bill)</div></div>
+        <div class="kpi"><div class="kpi-label">Your Slab Rate</div><div class="kpi-val" id="kRate">—</div><div class="kpi-unit">PKR/kWh</div></div>
+        <div class="kpi"><div class="kpi-label">Energy Charge</div><div class="kpi-val" id="kEnergy">—</div><div class="kpi-unit">PKR</div></div>
+        <div class="kpi"><div class="kpi-label">Total Bill (est.)</div><div class="kpi-val" id="kTotal">—</div><div class="kpi-unit">PKR</div></div>
+      </div>
+    </div>
+
+    <!-- Savings -->
+    <div class="savings">
+      <div class="sav-icon">💰</div>
+      <div>
+        <div class="sav-label">If you save 15% electricity, monthly saving:</div>
+        <div class="sav-val" id="kSavings">—</div>
+        <div class="sav-sub">PKR — see tips below</div>
+      </div>
+    </div>
+
+    <!-- APPLIANCE TABLE -->
+    <div class="card">
+      <div class="card-title">
+        <i class="fa-solid fa-plug"></i>
+        Your Appliances — Set Quantity &amp; Hours
+        <span class="live-tag">LIVE CALC</span>
+      </div>
+      <div class="tbl-head">
+        <span>Appliance</span><span style="text-align:center">Watts</span>
+        <span style="text-align:center">Qty (+/-)</span>
+        <span style="text-align:center">Hrs/Day</span>
+        <span style="text-align:center">Monthly kWh</span>
+      </div>
+      <div id="appRows"></div>
+      <div class="total-bar">
+        <span>📊 Total from appliances:</span>
+        <span id="appTotal">0 kWh/month</span>
+      </div>
+    </div>
+
+    <div class="recalc-bar">
+      <p>⬆️ Change quantities or hours above, then click to recalculate bill</p>
+      <button class="recalc-btn" onclick="recalc()">🔄 Recalculate Bill</button>
+    </div>
+
+    <!-- Breakdown + Chart -->
+    <div class="two-col">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-title"><i class="fa-solid fa-receipt"></i> Bill Breakdown</div>
+        <div id="breakdown"></div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-title"><i class="fa-solid fa-chart-pie"></i> Usage Share</div>
+        <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+      </div>
+    </div>
+    <div style="margin-bottom:14px;"></div>
+
+    <!-- Slab -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-layer-group"></i> NEPRA Slab System 2024-25</div>
+      <div id="slabRows" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;"></div>
+      <p style="font-size:10px;color:var(--t3);margin-top:8px;">✅ = Your current slab</p>
+    </div>
+
+    <!-- Affiliate -->
+    <div class="aff-title"><i class="fa-brands fa-amazon"></i> Energy Saving Products on Amazon</div>
+    <div class="aff-grid" id="affGrid"></div>
+
+    <!-- AI -->
+    <div class="ai-card">
+      <h3>🤖 AI Analysis</h3>
+      <div class="ai-text" id="aiText">Analysis loading...</div>
+    </div>
+
+    <!-- Recs -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-lightbulb"></i> Tips to Reduce Your Bill</div>
+      <div id="recList"></div>
+    </div>
+
+  </div><!-- /results -->
+</div>
+
+<div class="footer">WattWise Pro — Pakistan AI Bill Analyzer | Affiliate: saadullahaf07-20</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────
+const AFF = 'saadullahaf07-20';
+
+// ─── NEPRA SLABS ─────────────────────────
+const SLABS = [
+  {label:'1–100',   min:0,   max:100,  rate:7.74},
+  {label:'101–200', min:101, max:200,  rate:10.06},
+  {label:'201–300', min:201, max:300,  rate:14.29},
+  {label:'301–400', min:301, max:400,  rate:20.79},
+  {label:'401–500', min:401, max:500,  rate:22.65},
+  {label:'501–600', min:501, max:600,  rate:25.07},
+  {label:'601–700', min:601, max:700,  rate:25.07},
+  {label:'700+',    min:701, max:99999,rate:26.07},
+];
+
+function slabFor(u){ return SLABS.find(s=>u>=s.min&&u<=s.max) || SLABS[7]; }
+
+// Progressive bill calculation
+function energyCharge(u){
+  const steps=[[100,7.74],[100,10.06],[100,14.29],[100,20.79],[100,22.65],[100,25.07],[100,25.07],[Infinity,26.07]];
+  let charge=0, rem=u;
+  for(const [sz,r] of steps){ if(rem<=0) break; const used=Math.min(rem,sz); charge+=used*r; rem-=used; }
+  return charge;
+}
+
+function calcBill(u, actualBill){
+  const e = energyCharge(u);
+  const fc = u * 3.23;
+  const tv = 35;
+  const nj = 10;
+  const ed = e * 0.17;
+  const gst = (e + fc) * 0.18;
+  const sub = e + fc + tv + nj + ed + gst;
+  return { e, fc, tv, nj, ed, gst, sub, actual: (actualBill && actualBill > 100) ? actualBill : null };
+}
+
+// ─── APPLIANCES LIST ─────────────────────
+// qty starts at 0 — user sets their own
+const APPLIANCES = [
+  {em:'🌀', name:'Ceiling Fan',         watts:80,    qty:0, hrs:8},
+  {em:'💡', name:'LED Bulb',             watts:10,    qty:0, hrs:6},
+  {em:'🔦', name:'Energy Saver Bulb',    watts:25,    qty:0, hrs:6},
+  {em:'❄️', name:'Inverter AC (1.5 ton)',watts:1500,  qty:0, hrs:6},
+  {em:'🧊', name:'Refrigerator',         watts:150,   qty:0, hrs:24},
+  {em:'🫙', name:'Deep Freezer',          watts:200,   qty:0, hrs:24},
+  {em:'📺', name:'LCD / LED TV',          watts:100,   qty:0, hrs:5},
+  {em:'🫧', name:'Washing Machine',      watts:500,   qty:0, hrs:1},
+  {em:'🚿', name:'Electric Geyser',      watts:3000,  qty:0, hrs:1},
+  {em:'🔌', name:'Mobile Chargers (x5)', watts:25,    qty:0, hrs:5},
+  {em:'🖥️', name:'Computer / Laptop',    watts:150,   qty:0, hrs:4},
+  {em:'🪟', name:'Water Pump / Motor',   watts:746,   qty:0, hrs:2},
+  {em:'🍳', name:'Microwave Oven',        watts:1200,  qty:0, hrs:0.5},
+];
+
+let apps = APPLIANCES.map(a=>({...a}));
+let currentUnits = 0;
+let currentBillAmt = null;
+let pieChart = null;
+
+// ─── RENDER APPLIANCE TABLE ───────────────
+function renderApps(){
+  const total = apps.reduce((s,a)=> s + (a.watts*a.qty*a.hrs*30/1000), 0);
+  document.getElementById('appTotal').textContent = total.toFixed(1) + ' kWh/month';
+
+  document.getElementById('appRows').innerHTML = apps.map((a,i) => {
+    const kwh = (a.watts * a.qty * a.hrs * 30 / 1000).toFixed(1);
+    return `<div class="app-row">
+      <div class="app-name"><span class="app-em">${a.em}</span>${a.name}<small style="color:var(--t3);font-size:10px;margin-left:4px;">${a.watts}W</small></div>
+      <div class="app-w">${a.watts}W</div>
+      <div class="qty">
+        <button class="q-btn" onclick="changeQty(${i},-1)">−</button>
+        <span class="q-num" id="q${i}">${a.qty}</span>
+        <button class="q-btn" onclick="changeQty(${i},1)">+</button>
+      </div>
+      <div class="hrs">
+        <input type="number" value="${a.hrs}" min="0" max="24" step="0.5"
+          onchange="changeHrs(${i},this.value)" style="width:40px;"/>
+        <span>hrs</span>
+      </div>
+      <div class="app-kwh" id="appkwh${i}">${kwh} kWh</div>
+    </div>`;
+  }).join('');
+}
+
+function changeQty(i, d){
+  apps[i].qty = Math.max(0, apps[i].qty + d);
+  updateAppRow(i);
+}
+function changeHrs(i, v){
+  apps[i].hrs = Math.min(24, Math.max(0, parseFloat(v)||0));
+  updateAppRow(i);
+}
+function updateAppRow(i){
+  const kwh = (apps[i].watts * apps[i].qty * apps[i].hrs * 30 / 1000).toFixed(1);
+  const el = document.getElementById('appkwh'+i);
+  const qEl = document.getElementById('q'+i);
+  if(el) el.textContent = kwh + ' kWh';
+  if(qEl) qEl.textContent = apps[i].qty;
+  const total = apps.reduce((s,a)=>s+(a.watts*a.qty*a.hrs*30/1000),0);
+  document.getElementById('appTotal').textContent = total.toFixed(1) + ' kWh/month';
+}
+
+function recalc(){
+  const appKwh = apps.reduce((s,a)=>s+(a.watts*a.qty*a.hrs*30/1000),0);
+  // Use appliance total if user has set appliances, otherwise use bill units
+  const units = appKwh > 0 ? Math.round(appKwh) : currentUnits;
+  if(units < 1){ alert('Please set appliance quantities first, or enter units manually.'); return; }
+  renderKPIs(units, currentBillAmt);
+  renderChart(units);
+}
+
+// ─── RENDER KPIs ─────────────────────────
+function renderKPIs(u, ba){
+  const slab = slabFor(u);
+  const bd = calcBill(u, ba);
+  const total = bd.actual || bd.sub;
+  const sav = total * 0.15;
+
+  document.getElementById('kUnits').textContent   = u.toLocaleString();
+  document.getElementById('kRate').textContent     = slab.rate.toFixed(2);
+  document.getElementById('kEnergy').textContent   = '₨' + Math.round(bd.e).toLocaleString();
+  document.getElementById('kTotal').textContent    = '₨' + Math.round(total).toLocaleString();
+  document.getElementById('kSavings').textContent  = '₨' + Math.round(sav).toLocaleString();
+
+  // Breakdown
+  const rows = [
+    ['⚡ Energy Charge',         '₨' + Math.round(bd.e).toLocaleString()],
+    ['⛽ Fuel Cost Adjustment',  '₨' + Math.round(bd.fc).toLocaleString()],
+    ['📺 TV Fee',                 '₨' + bd.tv],
+    ['⚖️ NJ Surcharge',          '₨' + bd.nj],
+    ['🏛️ Electricity Duty 17%', '₨' + Math.round(bd.ed).toLocaleString()],
+    ['🧾 GST 18%',               '₨' + Math.round(bd.gst).toLocaleString()],
+    ['Total Estimated Bill',     '₨' + Math.round(bd.sub).toLocaleString()],
+  ];
+  if(bd.actual) rows.push(['✅ Actual Bill Amount', '₨' + Math.round(bd.actual).toLocaleString()]);
+  document.getElementById('breakdown').innerHTML = rows.map((r,i) =>
+    `<div class="bdr${i===rows.length-1?' last':''}"><span>${r[0]}</span><span>${r[1]}</span></div>`
+  ).join('');
+
+  // Slabs
+  document.getElementById('slabRows').innerHTML = SLABS.map(s => {
+    const active = u >= s.min && u <= s.max;
+    return `<div class="slab-row${active?' active':''}">
+      <span>${s.label} units${active?' ✅':''}</span>
+      <span style="font-weight:700;">₨${s.rate}/kWh</span>
+    </div>`;
+  }).join('');
+}
+
+function renderChart(u){
+  const active = apps.filter(a=>a.qty>0);
+  const labels = active.length ? active.map(a=>a.name) : ['Bill Total'];
+  const data   = active.length ? active.map(a=>+(a.watts*a.qty*a.hrs*30/1000).toFixed(1)) : [u];
+  const colors = ['#1d4ed8','#dc2626','#d97706','#059669','#7c3aed','#0891b2','#be185d','#65a30d','#9333ea','#ea580c','#0284c7','#16a34a','#6366f1'];
+  if(pieChart) pieChart.destroy();
+  pieChart = new Chart(document.getElementById('pieChart').getContext('2d'), {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data, backgroundColor:colors, borderWidth:3, borderColor:'#fff' }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:'#475569', font:{size:10} } } } }
+  });
+}
+
+function renderAff(u){
+  const L = q => `https://www.amazon.com/s?k=${encodeURIComponent(q)}&tag=${AFF}`;
+  const prods = [
+    {em:'💡', name:'LED Bulbs Pack',        desc:'9W — 85% less power',              url:L('LED bulb 9W energy saving pack'),        save:'~PKR 2,500/year'},
+    {em:'🔌', name:'Smart Power Strip',     desc:'Auto cuts standby power',           url:L('smart power strip surge protector'),      save:'~PKR 500/month'},
+  ];
+  if(u>100) prods.push({em:'🧊',name:'Inverter Refrigerator',desc:'5-star rated, half the power',url:L('inverter refrigerator energy efficient'),save:'~PKR 1,500/month'});
+  if(u>300) prods.push({em:'❄️',name:'Inverter AC 1.5T',     desc:'50% electricity saving',     url:L('inverter split ac 1.5 ton'),              save:'~PKR 6,000/month'});
+  if(u>200) prods.push({em:'🌡️',name:'Smart Thermostat',     desc:'Auto AC control, 20% saving', url:L('smart thermostat wifi energy saving'),    save:'~PKR 4,000/month'});
+  if(u>250) prods.push({em:'☀️',name:'Solar Panel Kit',       desc:'One-time install, free power', url:L('solar panel kit 300W home'),              save:'70% bill cut'});
+
+  document.getElementById('affGrid').innerHTML = prods.map(p =>
+    `<div class="aff-card"><a href="${p.url}" target="_blank" rel="noopener">
+      <span class="aff-em">${p.em}</span>
+      <div class="aff-name">${p.name}</div>
+      <div class="aff-desc">${p.desc}</div>
+      <div class="aff-btn">View on Amazon →</div>
+      <div class="aff-save">${p.save}</div>
+    </a></div>`
+  ).join('');
+}
+
+function renderRecs(u){
+  const items = [];
+  if(u>300) items.push({c:'danger',i:'❄️',t:'Set AC to 26°C',d:'Every 1°C lower increases power use by 6%. 26°C is the most efficient setting.'});
+  if(u>150) items.push({c:'warn',i:'🧊',t:'Clean fridge coils',d:'Dusty coils at the back waste 15% extra electricity. Clean monthly.'});
+  items.push({c:'ok',i:'💡',t:'Switch all bulbs to LED',d:'One 60W old bulb → 9W LED saves PKR 2,500+ per year. Full home = big savings.'});
+  items.push({c:'',i:'🔌',t:'Unplug standby devices',d:'TV, chargers, microwave — even "off" devices use power. Unplug or use smart strip.'});
+  if(u>200) items.push({c:'warn',i:'🌙',t:'Run washing machine at night',d:'Electricity demand is lower after 11pm. Helps the grid and may save cost.'});
+  if(u>400) items.push({c:'ok',i:'☀️',t:'Consider solar panels',d:`For ${u} units/month, a 3kW system is ideal. Pays back in 3-4 years.`});
+  document.getElementById('recList').innerHTML = items.map(r =>
+    `<div class="rec ${r.c}"><div class="rec-icon">${r.i}</div>
+    <div><div class="rec-title">${r.t}</div><div class="rec-desc">${r.d}</div></div></div>`
+  ).join('');
+}
+
+// ─── MAIN DISPLAY ─────────────────────────
+function showResults(units, billAmt, refId){
+  currentUnits = units;
+  currentBillAmt = billAmt;
+  apps = APPLIANCES.map(a=>({...a})); // reset to 0 each time
+
+  document.getElementById('refDisplay').textContent = refId || 'WattWise';
+  renderKPIs(units, billAmt);
+  renderApps();
+  renderChart(units);
+  renderAff(units);
+  renderRecs(units);
+  document.getElementById('results').classList.add('show');
+  setTimeout(()=>document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'}),100);
+}
+
+// ─── OCR — IMPROVED ──────────────────────
+function runOCR(file){
+  return new Promise(resolve => {
+    showProg('Reading bill image...');
+    Tesseract.recognize(file, 'eng', {
+      logger: m => {
+        if(m.status==='recognizing text'){
+          const p = Math.round(m.progress * 100);
+          document.getElementById('progFill').style.width = p + '%';
+          document.getElementById('progPct').textContent = p + '%';
+        }
+      }
+    }).then(({data:{text}}) => {
+      hideProg();
+      // IMPROVED unit extraction — look for specific Pakistani bill patterns
+      const units = extractUnits(text);
+      const bill  = extractBillAmt(text);
+      const ref   = extractRef(text);
+      resolve({units, bill, ref, raw: text});
+    }).catch(err => {
+      hideProg();
+      resolve({units:null, bill:null, ref:null, raw:''});
+    });
+  });
+}
+
+function extractUnits(text){
+  // Clean the text
+  const t = text.replace(/[|]/g,' ').replace(/\s+/g,' ');
+  
+  // Most specific patterns first — Pakistani bill format
+  const patterns = [
+    // "Units Consumed: 51" or "Units Consumed 51"
+    /[Uu]nits?\s+[Cc]onsumed\s*:?\s*(\d{1,4})/,
+    // "Consumed Units: 51"
+    /[Cc]onsumed\s+[Uu]nits?\s*:?\s*(\d{1,4})/,
+    // "Current Consumption: 51 kWh"
+    /[Cc]urrent\s+[Cc]onsumption\s*:?\s*(\d{1,4})/,
+    // "kWh: 51" or "kWh 51"
+    /\bkWh\s*:?\s*(\d{1,4})\b/i,
+    // Bill format — number between 10 and 999 near "units" word
+    /(\d{1,4})\s*[Uu]nits/,
+  ];
+
+  for(const p of patterns){
+    const m = t.match(p);
+    if(m){
+      const v = parseInt(m[1]);
+      // Valid units range: 1 to 9999
+      if(v >= 1 && v <= 9999) return v;
+    }
+  }
+  return null;
+}
+
+function extractBillAmt(text){
+  const t = text.replace(/,/g,'');
+  const patterns = [
+    /[Pp]ayable\s+[Aa]mount\s*:?\s*(\d{3,6})/,
+    /[Tt]otal\s+[Pp]ayable\s*:?\s*(\d{3,6})/,
+    /[Nn]et\s+[Pp]ayable\s*:?\s*(\d{3,6})/,
+    /[Aa]mount\s+[Pp]ayable\s*:?\s*(\d{3,6})/,
+  ];
+  for(const p of patterns){
+    const m = t.match(p);
+    if(m){ const v=parseInt(m[1]); if(v>100) return v; }
+  }
+  return null;
+}
+
+function extractRef(text){
+  const m = text.match(/[Cc]onsumer\s*[Nn]o\.?\s*:?\s*([A-Z0-9\-]{6,20})/i)
+            || text.match(/[Rr]ef(?:erence)?\s*[Nn]o\.?\s*:?\s*([A-Z0-9\-]{6,20})/i);
+  return m ? m[1].trim() : null;
+}
+
+// ─── AI TEXT ─────────────────────────────
+async function getAI(units, total){
+  try{
+    const r = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:350,
+        messages:[{role:'user', content:
+          `You are a Pakistani electricity bill expert. In 120 words of simple Roman Urdu (mix of Urdu and English), analyze:
+Units: ${units} kWh | Bill: PKR ${total}
+Tell: 1) Is this high/medium/low for a Pakistani home? 2) Which appliances likely use most power? 3) Top 2 tips to save PKR with estimated savings amount. Be friendly and specific.`
+        }]
+      })
+    });
+    if(!r.ok) throw 0;
+    const d = await r.json();
+    return d.content?.[0]?.text || '';
+  } catch { return ''; }
+}
+
+// ─── HANDLERS ────────────────────────────
+async function handleFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+
+  // Show preview
+  const fr = new FileReader();
+  fr.onload = ev => { const img=document.getElementById('preview'); img.src=ev.target.result; img.style.display='block'; };
+  fr.readAsDataURL(file);
+
+  reset();
+
+  // Run OCR
+  const {units, bill, ref} = await runOCR(file);
+  const userRef = document.getElementById('refInput').value.trim() || ref || '';
+
+  if(!units){
+    showError('Could not read units from bill — please enter manually below');
+    showManual();
+    return;
+  }
+
+  setStatus('Calculating bill...', 'Building your report');
+  showResults(units, bill, userRef);
+  hideStatus();
+
+  // Get AI text (bonus)
+  const bd = calcBill(units, bill);
+  const total = Math.round(bd.actual || bd.sub);
+  const aiTxt = await getAI(units, total);
+  document.getElementById('aiText').textContent = aiTxt ||
+    `Aap ne is maah ${units} units use kiye. NEPRA slab ke mutabiq estimated bill PKR ${total.toLocaleString()} hai. Upar appliances ki quantity aur ghante set karen taake exact calculation ho sake!`;
+}
+
+async function runManual(){
+  const u = parseInt(document.getElementById('mUnits').value);
+  const b = parseFloat(document.getElementById('mBill').value) || null;
+  if(!u || u<1){ alert('Please enter units'); return; }
+  const ref = document.getElementById('refInput').value.trim();
+  reset();
+  setStatus('Calculating...','');
+  showResults(u, b, ref);
+  hideStatus();
+  showManual();
+  const bd = calcBill(u,b);
+  const total = Math.round(b||bd.sub);
+  const aiTxt = await getAI(u, total);
+  document.getElementById('aiText').textContent = aiTxt ||
+    `${u} units ka estimated bill PKR ${total.toLocaleString()} hai. Upar appliances adjust karen!`;
+}
+
+// ─── UI HELPERS ──────────────────────────
+function showProg(l){ document.getElementById('progLabel').textContent=l; document.getElementById('progBox').classList.add('show'); }
+function hideProg(){ document.getElementById('progBox').classList.remove('show'); }
+function setStatus(t,s){ document.getElementById('statusBox').classList.add('show'); document.getElementById('statusText').textContent=t; document.getElementById('statusSub').textContent=s; }
+function hideStatus(){ document.getElementById('statusBox').classList.remove('show'); }
+function showError(m){ document.getElementById('errorBox').classList.add('show'); document.getElementById('errorMsg').textContent=m; }
+function showManual(){ document.getElementById('manualBox').classList.add('show'); }
+function reset(){ hideStatus(); hideProg(); document.getElementById('errorBox').classList.remove('show'); document.getElementById('results').classList.remove('show'); }
+
+// Drag & drop
+const ub = document.getElementById('uploadBox');
+ub.addEventListener('dragover', e=>{ e.preventDefault(); ub.style.borderColor='var(--blue)'; });
+ub.addEventListener('dragleave', ()=>{ ub.style.borderColor=''; });
+ub.addEventListener('drop', e=>{
+  e.preventDefault(); ub.style.borderColor='';
+  const f = e.dataTransfer.files[0];
+  if(f && f.type.startsWith('image/')){
+    const dt = new DataTransfer(); dt.items.add(f);
+    document.getElementById('billFile').files = dt.files;
+    handleFile({target:{files:[f]}});
+  }
+});
+</script>
+</body>
+</html>
